@@ -14,17 +14,19 @@ import (
 var log = logger.New()
 
 type Client struct {
-	conn  net.Conn
-	ctx   context.Context
-	addr  string
-	MsgCh chan message.Message
+	conn   net.Conn
+	ctx    context.Context
+	cancel context.CancelFunc
+	addr   string
+	MsgCh  chan message.Message
 }
 
-func NewClient(addr string) *Client {
+func NewClient(ctx context.Context, cancel context.CancelFunc, addr string) *Client {
 	return &Client{
-		ctx:   context.Background(),
-		addr:  addr,
-		MsgCh: make(chan message.Message),
+		ctx:    ctx,
+		cancel: cancel,
+		addr:   addr,
+		MsgCh:  make(chan message.Message),
 	}
 }
 
@@ -87,6 +89,7 @@ func (c *Client) sender() {
 	defer func() {
 		log.Info("Sender: Closing connection")
 		c.close()
+		c.cancel()
 	}()
 	for {
 		select {
@@ -110,6 +113,7 @@ func (c *Client) listner() {
 		log.Info("Listner: Closing connection")
 		c.close()
 		ticker.Stop()
+		c.cancel()
 	}()
 	for {
 		select {
@@ -120,7 +124,9 @@ func (c *Client) listner() {
 			bytes := make([]byte, cfg.MSG_MAX_SIZE)
 			n, err := c.conn.Read(bytes)
 			if err != nil {
-				log.Errorf("read error: %v\n", err)
+				log.Errorf("Listner: read error: %v\n", err)
+				// TODO: do not disconnect, wait for reconnect
+				// continue
 				return
 			}
 			log.Debugf("Received: %d bytes:\n", n)

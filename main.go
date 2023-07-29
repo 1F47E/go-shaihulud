@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"go-dmtor/client"
 	"go-dmtor/client/message"
 	cfg "go-dmtor/config"
 	"go-dmtor/logger"
 	"os"
+	"os/signal"
 )
 
 var log = logger.New()
@@ -23,8 +25,17 @@ func main() {
 		log.Fatalf(usage, args[0])
 	}
 
+	// context for graceful shutdown and exit
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt)
+		<-stop
+		cancel()
+	}()
+
 	// start the client cli or server
-	cli := client.NewClient(cfg.ADDR)
+	cli := client.NewClient(ctx, cancel, cfg.ADDR)
 	if arg == "srv" {
 		err := cli.ServerStart()
 		if err != nil {
@@ -42,18 +53,26 @@ func main() {
 	}
 
 	// block and wait for user input
-	for {
-		input := make([]byte, cfg.MSG_MAX_SIZE)
-		n, err := os.Stdin.Read(input)
-		if err != nil {
-			log.Fatalf("read error: %v\n", err)
-			return
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Warnf("context done: %v\n", ctx.Err())
+				return
+			default:
+				input := make([]byte, cfg.MSG_MAX_SIZE)
+				n, err := os.Stdin.Read(input)
+				if err != nil {
+					log.Fatalf("read error: %v\n", err)
+					return
+				}
+				m := message.NewMessageText(string(input[:n]))
+				cli.MsgCh <- *m
+			}
 		}
-		// trim the input string to remove trailing null bytes ('\x00')
-		// inputStr := strings.TrimRight(string(input[:n]), "\x00")
-		m := message.NewMessageText(string(input[:n]))
-		cli.MsgCh <- *m
-	}
+	}()
+	<-ctx.Done()
+	log.Warn("Bye!")
 }
 
 // func crypt_demo() {
