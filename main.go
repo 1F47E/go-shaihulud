@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"go-dmtor/client"
-	"go-dmtor/client/message"
 	cfg "go-dmtor/config"
+	"go-dmtor/crypto"
 	"go-dmtor/logger"
 	"os"
 	"os/signal"
@@ -15,6 +16,8 @@ var log = logger.New()
 var usage = "Usage: %s <srv|cli>\n"
 
 func main() {
+	// crypt_demo()
+
 	// get input args
 	args := os.Args
 	if len(args) == 1 {
@@ -41,15 +44,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("server start error: %v\n", err)
 		}
-		m := message.NewMessageHello()
-		cli.MsgCh <- *m
 	} else {
 		err := cli.ServerConnect()
 		if err != nil {
 			log.Fatalf("server connect error: %v\n", err)
 		}
-		m := message.NewMessageHello()
-		cli.MsgCh <- *m
 	}
 
 	// block and wait for user input
@@ -66,8 +65,8 @@ func main() {
 					log.Fatalf("read error: %v\n", err)
 					return
 				}
-				m := message.NewMessageText(string(input[:n]))
-				cli.MsgCh <- *m
+				input = input[:n]
+				cli.SendMessage(input)
 			}
 		}
 	}()
@@ -75,17 +74,28 @@ func main() {
 	log.Warn("Bye!")
 }
 
-// func crypt_demo() {
+func crypt_demo() {
+	key := crypto.Keygen()
+	// Get the public key
+	publicKey := &key.PublicKey
 
-// 	key := crypto.Keygen()
-// 	// Get the public key
-// 	publicKey := &key.PublicKey
+	// test PEM
+	pubPem, err := crypto.EncodePublicKeyToBytes(publicKey)
+	if err != nil {
+		log.Fatalf("encode error: %v\n", err)
+	}
+	fmt.Printf("Public key pem: %x\n", pubPem)
+	pubFromPem, err := crypto.DecodePublicKeyFromBytes(pubPem)
+	if err != nil {
+		log.Fatalf("decode error: %v\n", err)
+	}
 
-// 	// Encrypt a message
-// 	message := "hello, world"
-// 	cipher := crypto.Encrypt(message, publicKey)
-// 	fmt.Printf("Ciphertext: %x\n", cipher)
+	// Encrypt a message
+	message := "hello, world"
+	cipher := crypto.Encrypt([]byte(message), pubFromPem)
+	fmt.Printf("Ciphertext: %x\n", cipher)
 
-// 	plain := crypto.Decrypt(cipher, &key)
-// 	fmt.Printf("Plaintext: %s\n", plain)
-// }
+	// Decrypt the message
+	plain := crypto.Decrypt(cipher, &key)
+	fmt.Printf("Plaintext: %s\n", plain)
+}

@@ -1,7 +1,7 @@
 - [x] basic tcp echo server
 - [x] basic chat server-client
-- [ ] custom protocol with header
+- [x] custom protocol with header
 - [ ] ack on message received
-- [ ] chat via custom protocol
-- [ ] handshake on connection, exchange public keys
-- [ ] encrypt chat with public key
+- [x] chat via custom protocol
+- [x] handshake on connection, exchange public keys
+- [x] encrypt chat with public key

@@ -46,17 +46,17 @@ type Message struct {
 	Body  []byte
 }
 
-func NewMessageText(msg string) *Message {
-	return &Message{
+func NewMSG(msg []byte) Message {
+	return Message{
 		Type:  MSG,
 		Nonce: nonce(),
 		Len:   uint32(len(msg)),
-		Body:  []byte(msg),
+		Body:  msg,
 	}
 }
 
-func NewMessageAck() *Message {
-	return &Message{
+func NewAck() Message {
+	return Message{
 		Type:  ACK,
 		Nonce: nonce(),
 		Len:   0,
@@ -64,12 +64,21 @@ func NewMessageAck() *Message {
 	}
 }
 
-func NewMessageHello() *Message {
-	return &Message{
+func NewHello() Message {
+	return Message{
 		Type:  HELLO,
 		Nonce: nonce(),
 		Len:   0,
 		Body:  nil,
+	}
+}
+
+func NewKey(key []byte) Message {
+	return Message{
+		Type:  KEY,
+		Nonce: nonce(),
+		Len:   uint32(len(key)),
+		Body:  key,
 	}
 }
 
@@ -101,6 +110,16 @@ func (t MsgType) String() string {
 	default:
 		return "Unknown"
 	}
+}
+
+func (m *Message) Data() []byte {
+	if m.Len == 0 {
+		return nil
+	}
+	if m.Len > uint32(len(m.Body)) {
+		return m.Body
+	}
+	return m.Body[:m.Len]
 }
 
 func (m *Message) Serialize() ([]byte, error) {
