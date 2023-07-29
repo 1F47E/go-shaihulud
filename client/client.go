@@ -63,12 +63,12 @@ func (c *Client) ServerStart() error {
 		return err
 	}
 
-	log.Infof("Listening on %s", addr)
 	listener, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		log.Errorf("listen error: %v\n", err)
 		return err
 	}
+	log.Infof("Main listening socket is open at %s", addr)
 
 	// TODO: handle multiple connections
 	// run listener accept in a sep G to allow shutdown
@@ -82,7 +82,8 @@ func (c *Client) ServerStart() error {
 				return
 
 			default:
-				log.Infof("Listening on %s", addr)
+				log.Info("Waiting for connection...")
+				// block
 				conn, err := listener.Accept()
 				if err != nil {
 					log.Errorf("accept error: %v\n", err)
@@ -90,6 +91,7 @@ func (c *Client) ServerStart() error {
 				// connID := uuid.New().String()
 				ip := conn.RemoteAddr().String()
 				connID := crypto.Hash([]byte(ip))
+				log.Infof("Connection socket from %s\n", connID)
 
 				if _, ok := c.connections[connID]; ok {
 					log.Info("Client reconnected: %s\n", connID)
@@ -99,7 +101,7 @@ func (c *Client) ServerStart() error {
 						ID:   connID,
 						Conn: conn,
 					}
-					log.Infof("Accepted connection from %s\n", connID)
+					log.Infof("New connection from %s\n", connID)
 				}
 				log.Debugf("Total connections: %d\n", len(c.connections))
 
@@ -120,20 +122,37 @@ func (c *Client) ServerStart() error {
 }
 
 func (c *Client) ServerConnect() error {
-	var err error
-	conn, err := net.Dial("tcp", c.addr)
-	if err != nil {
-		log.Errorf("dial error: %v\n", err)
-		return err
+	var CLIENT_MAX_RETRY = 5
+	retry := 0
+	isFirstTry := true
+	for {
+		select {
+		case <-c.ctx.Done():
+			return c.ctx.Err()
+		default:
+			conn, err := net.Dial("tcp", c.addr)
+			if err != nil {
+				if isFirstTry {
+					return fmt.Errorf("Server no avaiable, retry later")
+				}
+				retry++
+				if retry > CLIENT_MAX_RETRY {
+					return fmt.Errorf("Max retry reached, Connection error: %v\n", err)
+				}
+				log.Warnf("Connection error: %v, retry %d/%d\n", err, retry, CLIENT_MAX_RETRY)
+				// TODO: rewrite to ticker to cancel faster?
+				time.Sleep(time.Duration(retry) * 1 * time.Second)
+				continue
+			}
+			log.Infof("Connected to %s\n", c.addr)
+			isFirstTry = false
+
+			ctx, cancel := context.WithCancel(c.ctx)
+			go c.sender(conn, ctx, cancel)
+			go c.listner(conn, ctx, cancel)
+			<-ctx.Done()
+		}
 	}
-	log.Infof("Connected to %s\n", c.addr)
-
-	ctx, cancel := context.WithCancel(c.ctx)
-	go c.sender(conn, ctx, cancel)
-	go c.listner(conn, ctx, cancel)
-	// TODO: make reconnect here
-
-	return nil
 }
 
 func (c *Client) SendMessage(msg []byte) {
