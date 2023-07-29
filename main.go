@@ -17,7 +17,7 @@ var log = logger.New()
 var usage = "Usage: %s <srv|cli>\n"
 
 func main() {
-	crypt_demo()
+	// crypt_demo()
 
 	// get input args
 	args := os.Args

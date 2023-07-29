@@ -52,38 +52,39 @@ func (c *Client) ServerStart() error {
 		log.Errorf("resolve error: %v\n", err)
 		return err
 	}
+
 	listener, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		log.Errorf("listen error: %v\n", err)
 		return err
 	}
 
-	// TODO: cancel on ctx.Done()
-	// BUG: blocking on accept
+	// TODO: handle multiple connections
+	// run listener accept in a sep G to allow shutdown
+	go func() {
+		for {
+			select {
+			case <-c.ctx.Done():
 
-	log.Infof("Listening on %s", addr)
-	c.conn, err = listener.Accept()
-	if err != nil {
-		log.Errorf("accept error: %v\n", err)
-		return err
-	}
+			default:
+				log.Infof("Listening on %s", addr)
+				conn, err := listener.Accept()
+				if err != nil {
+					log.Errorf("accept error: %v\n", err)
+					// return err
+				}
+				c.conn = conn
+				go c.listner()
+				go c.sender()
+			}
+		}
+	}()
 
-	// TODO: send hello
-	// w, err := c.conn.Write([]byte("hello"))
-	// if err != nil {
-	// 	log.Fatalf("write error: %v\n", err)
-	// }
-	// log.Printf("Wrote %d bytes\n", w)
-	// TODO: do handshake
-
-	go c.listner()
-	go c.sender()
 	return nil
 }
 
 func (c *Client) ServerConnect() error {
 	var err error
-	// connect to tcp port 3000, send user input
 	c.conn, err = net.Dial("tcp", c.addr)
 	if err != nil {
 		log.Errorf("dial error: %v\n", err)
