@@ -115,7 +115,7 @@ func (c *Client) sender() {
 		// send hello
 		// c.msgCh <- message.NewHello()
 		// send our PEM key
-		pem, err := crypto.EncodePublicKeyToBytes(&c.pubKey)
+		pem, err := crypto.PubToBytes(&c.pubKey)
 		if err != nil {
 			log.Errorf("Sender: PEM pub key error: %v\n", err)
 			return
@@ -181,7 +181,7 @@ func (c *Client) listner() {
 			case message.KEY:
 				log.Info(">>KEY")
 				// decode guest key from bytes
-				guestPubKey, err := crypto.DecodePublicKeyFromBytes(msg.Body)
+				guestPubKey, err := crypto.BytesToPub(msg.Body)
 				if err != nil {
 					log.Errorf("decode key error: %v\n", err)
 				} else {

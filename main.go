@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"go-dmtor/client"
 	cfg "go-dmtor/config"
@@ -16,7 +17,7 @@ var log = logger.New()
 var usage = "Usage: %s <srv|cli>\n"
 
 func main() {
-	// crypt_demo()
+	crypt_demo()
 
 	// get input args
 	args := os.Args
@@ -80,22 +81,39 @@ func crypt_demo() {
 	publicKey := &key.PublicKey
 
 	// test PEM
-	pubPem, err := crypto.EncodePublicKeyToBytes(publicKey)
+	pubPem, err := crypto.PubToPem(publicKey)
 	if err != nil {
 		log.Fatalf("encode error: %v\n", err)
 	}
-	fmt.Printf("Public key pem: %x\n", pubPem)
-	pubFromPem, err := crypto.DecodePublicKeyFromBytes(pubPem)
+	fmt.Printf("Public key pem: (%d) %x\n", len(pubPem), pubPem)
+	pubFromPem, err := crypto.PemToPub(pubPem)
 	if err != nil {
 		log.Fatalf("decode error: %v\n", err)
 	}
 
+	// test pub bytes
+	pubBytes, err := crypto.PubToBytes(publicKey)
+	if err != nil {
+		log.Fatalf("pub to bytes error: %v\n", err)
+	}
+	fmt.Printf("Public key bytes: (%d) %x\n", len(pubBytes), pubBytes)
+	pubFromBytes, err := crypto.BytesToPub(pubBytes)
+	if err != nil {
+		log.Fatalf("bytes to pub error: %v\n", err)
+	}
+
+	crypt_demo_run(&key, pubFromPem, "hello world 1 - pem")
+	crypt_demo_run(&key, pubFromBytes, "hello world 2 - bytes")
+
+}
+
+func crypt_demo_run(key *rsa.PrivateKey, pub *rsa.PublicKey, message string) {
 	// Encrypt a message
-	message := "hello, world"
-	cipher := crypto.Encrypt([]byte(message), pubFromPem)
+	cipher := crypto.Encrypt([]byte(message), pub)
 	fmt.Printf("Ciphertext: %x\n", cipher)
 
 	// Decrypt the message
-	plain := crypto.Decrypt(cipher, &key)
+	plain := crypto.Decrypt(cipher, key)
 	fmt.Printf("Plaintext: %s\n", plain)
+
 }

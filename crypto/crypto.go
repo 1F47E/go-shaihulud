@@ -38,8 +38,24 @@ func Keygen() rsa.PrivateKey {
 	return *privateKey
 }
 
-// Function to encode an rsa.PublicKey to bytes
-func EncodePublicKeyToBytes(pub *rsa.PublicKey) ([]byte, error) {
+// pub key conversion
+
+func PubToBytes(pub *rsa.PublicKey) ([]byte, error) {
+	return x509.MarshalPKIXPublicKey(pub)
+}
+
+func BytesToPub(pubBytes []byte) (*rsa.PublicKey, error) {
+	publicKeyInterface, err := x509.ParsePKIXPublicKey(pubBytes)
+	if err != nil {
+		return nil, err
+	}
+	publicKey := publicKeyInterface.(*rsa.PublicKey)
+	return publicKey, nil
+}
+
+// PEM
+
+func PubToPem(pub *rsa.PublicKey) ([]byte, error) {
 	pubASN1, err := x509.MarshalPKIXPublicKey(pub)
 	if err != nil {
 		return nil, err
@@ -54,7 +70,7 @@ func EncodePublicKeyToBytes(pub *rsa.PublicKey) ([]byte, error) {
 }
 
 // Function to decode an rsa.PublicKey from bytes
-func DecodePublicKeyFromBytes(pubBytes []byte) (*rsa.PublicKey, error) {
+func PemToPub(pubBytes []byte) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode(pubBytes)
 	if block == nil {
 		return nil, errors.New("failed to parse PEM block")
