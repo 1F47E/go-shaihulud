@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"go-dmtor/client/message"
 	cfg "go-dmtor/config"
 	"go-dmtor/logger"
 )
@@ -16,14 +17,14 @@ type Client struct {
 	conn  net.Conn
 	ctx   context.Context
 	addr  string
-	MsgCh chan string
+	MsgCh chan message.Message
 }
 
 func NewClient(addr string) *Client {
 	return &Client{
 		ctx:   context.Background(),
 		addr:  addr,
-		MsgCh: make(chan string),
+		MsgCh: make(chan message.Message),
 	}
 }
 
@@ -33,21 +34,24 @@ func (c *Client) close() {
 	}
 }
 
-func (c *Client) ServerStart() {
+func (c *Client) ServerStart() error {
 	// open tcp connection to port 3000 and listen to incoming connections.
 	// on connection print hello
 	addr, err := net.ResolveTCPAddr("tcp4", c.addr)
 	if err != nil {
-		log.Fatalf("resolve error: %v\n", err)
+		log.Errorf("resolve error: %v\n", err)
+		return err
 	}
 	listener, err := net.ListenTCP("tcp", addr)
 	if err != nil {
-		log.Fatalf("listen error: %v\n", err)
+		log.Errorf("listen error: %v\n", err)
+		return err
 	}
 	log.Infof("Listening on %s", addr)
 	c.conn, err = listener.Accept()
 	if err != nil {
-		log.Fatalf("accept error: %v\n", err)
+		log.Errorf("accept error: %v\n", err)
+		return err
 	}
 
 	// TODO: send hello
@@ -60,6 +64,7 @@ func (c *Client) ServerStart() {
 
 	go c.listner()
 	go c.sender()
+	return nil
 }
 
 func (c *Client) ServerConnect() error {
@@ -89,7 +94,8 @@ func (c *Client) sender() {
 			return
 		case msg := <-c.MsgCh:
 			// send bytes to the connection
-			w, err := c.conn.Write([]byte(msg))
+			mBytes, _ := msg.Serialize()
+			w, err := c.conn.Write(mBytes)
 			if err != nil {
 				log.Fatalf("write error: %v\n", err)
 			}
@@ -118,7 +124,12 @@ func (c *Client) listner() {
 				return
 			}
 			log.Debugf("Received: %d bytes:\n", n)
-			fmt.Printf("%s", bytes)
+			fmt.Printf("raw: %s", bytes)
+			msg, err := message.Deserialize(bytes)
+			if err != nil {
+				log.Errorf("deserialize error: %v\n", err)
+			}
+			fmt.Printf("type: %s\nLen: %d\nmsg: %s\n", msg.Type, msg.Len, msg.Body)
 			// TODO: send ack
 		}
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"go-dmtor/client"
+	"go-dmtor/client/message"
 	cfg "go-dmtor/config"
 	"go-dmtor/logger"
 	"os"
@@ -12,6 +13,7 @@ var log = logger.New()
 var usage = "Usage: %s <srv|cli>\n"
 
 func main() {
+	// get input args
 	args := os.Args
 	if len(args) == 1 {
 		log.Fatalf(usage, args[0])
@@ -20,31 +22,39 @@ func main() {
 	if arg != "srv" && arg != "cli" {
 		log.Fatalf(usage, args[0])
 	}
+
+	// start the client cli or server
 	cli := client.NewClient(cfg.ADDR)
 	if arg == "srv" {
-		cli.ServerStart()
-		// crypt_demo()
+		err := cli.ServerStart()
+		if err != nil {
+			log.Fatalf("server start error: %v\n", err)
+		}
+		m := message.NewMessageHello()
+		cli.MsgCh <- *m
 	} else {
-		// read user input
 		err := cli.ServerConnect()
 		if err != nil {
-			log.Fatalf("connect error: %v\n", err)
+			log.Fatalf("server connect error: %v\n", err)
 		}
+		m := message.NewMessageHello()
+		cli.MsgCh <- *m
 	}
 
 	// block and wait for user input
 	for {
 		input := make([]byte, cfg.MSG_MAX_SIZE)
-		_, err := os.Stdin.Read(input)
+		n, err := os.Stdin.Read(input)
 		if err != nil {
 			log.Fatalf("read error: %v\n", err)
 			return
 		}
-		cli.MsgCh <- string(input)
+		// trim the input string to remove trailing null bytes ('\x00')
+		// inputStr := strings.TrimRight(string(input[:n]), "\x00")
+		m := message.NewMessageText(string(input[:n]))
+		cli.MsgCh <- *m
 	}
 }
-
-// ====== CLIENT
 
 // func crypt_demo() {
 
