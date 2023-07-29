@@ -7,8 +7,15 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"hash/fnv"
 	"log"
 )
+
+func Hash(msg []byte) uint64 {
+	hash := fnv.New64a()
+	hash.Write(msg)
+	return hash.Sum64()
+}
 
 func Encrypt(msg []byte, publicKey *rsa.PublicKey) []byte {
 	label := []byte("")

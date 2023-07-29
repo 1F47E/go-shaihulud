@@ -1,12 +1,15 @@
 package client
 
 import (
+	"bufio"
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
+	"go-dmtor/client/connection"
 	"go-dmtor/client/message"
 	cfg "go-dmtor/config"
 	"go-dmtor/crypto"
@@ -16,11 +19,14 @@ import (
 var log = logger.New()
 
 type Client struct {
-	conn        net.Conn
-	ctx         context.Context
-	cancel      context.CancelFunc
-	addr        string
+	ctx    context.Context
+	cancel context.CancelFunc
+	addr   string
+	// conn        net.Conn
+	connections map[uint64]*connection.Connection
 	msgCh       chan message.Message
+
+	// TODO: make a keychain for all the users in a chat
 	privKey     rsa.PrivateKey
 	pubKey      rsa.PublicKey
 	guestPubKey rsa.PublicKey
@@ -29,18 +35,22 @@ type Client struct {
 func NewClient(ctx context.Context, cancel context.CancelFunc, addr string) *Client {
 	key := crypto.Keygen()
 	return &Client{
-		ctx:     ctx,
-		cancel:  cancel,
-		addr:    addr,
-		msgCh:   make(chan message.Message),
-		privKey: key,
-		pubKey:  key.PublicKey,
+		ctx:         ctx,
+		cancel:      cancel,
+		addr:        addr,
+		connections: make(map[uint64]*connection.Connection),
+		msgCh:       make(chan message.Message),
+		privKey:     key,
+		pubKey:      key.PublicKey,
 	}
 }
 
-func (c *Client) close() {
-	if c.conn != nil {
-		c.conn.Close()
+func (c *Client) disconnect() {
+	// close all connections
+	for _, conn := range c.connections {
+		if conn != nil && conn.Conn != nil {
+			conn.Conn.Close()
+		}
 	}
 }
 
@@ -53,6 +63,7 @@ func (c *Client) ServerStart() error {
 		return err
 	}
 
+	log.Infof("Listening on %s", addr)
 	listener, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		log.Errorf("listen error: %v\n", err)
@@ -62,20 +73,45 @@ func (c *Client) ServerStart() error {
 	// TODO: handle multiple connections
 	// run listener accept in a sep G to allow shutdown
 	go func() {
+		defer func() {
+			log.Warnf("ServerStart exit\n")
+		}()
 		for {
 			select {
 			case <-c.ctx.Done():
+				return
 
 			default:
 				log.Infof("Listening on %s", addr)
 				conn, err := listener.Accept()
 				if err != nil {
 					log.Errorf("accept error: %v\n", err)
-					// return err
 				}
-				c.conn = conn
-				go c.listner()
-				go c.sender()
+				// connID := uuid.New().String()
+				ip := conn.RemoteAddr().String()
+				connID := crypto.Hash([]byte(ip))
+
+				if _, ok := c.connections[connID]; ok {
+					log.Info("Client reconnected: %s\n", connID)
+					c.connections[connID].Conn = conn
+				} else {
+					c.connections[connID] = &connection.Connection{
+						ID:   connID,
+						Conn: conn,
+					}
+					log.Infof("Accepted connection from %s\n", connID)
+				}
+				log.Debugf("Total connections: %d\n", len(c.connections))
+
+				// TODO: WIP pass connection to listners
+
+				// custom ctx to cancel both listner and sender
+				ctx, cancel := context.WithCancel(c.ctx)
+				go c.listner(conn, ctx, cancel)
+				go c.sender(conn, ctx, cancel)
+				log.Warn("ServerStart: blocing, working with connection")
+				<-ctx.Done()
+				// Block here untill we have a connection and listners are running
 			}
 		}
 	}()
@@ -85,15 +121,17 @@ func (c *Client) ServerStart() error {
 
 func (c *Client) ServerConnect() error {
 	var err error
-	c.conn, err = net.Dial("tcp", c.addr)
+	conn, err := net.Dial("tcp", c.addr)
 	if err != nil {
 		log.Errorf("dial error: %v\n", err)
 		return err
 	}
 	log.Infof("Connected to %s\n", c.addr)
 
-	go c.sender()
-	go c.listner()
+	ctx, cancel := context.WithCancel(c.ctx)
+	go c.sender(conn, ctx, cancel)
+	go c.listner(conn, ctx, cancel)
+	// TODO: make reconnect here
 
 	return nil
 }
@@ -104,11 +142,12 @@ func (c *Client) SendMessage(msg []byte) {
 	c.msgCh <- message.NewMSG(inputCipher)
 }
 
-func (c *Client) sender() {
+func (c *Client) sender(conn net.Conn, ctx context.Context, cancel context.CancelFunc) {
 	defer func() {
 		log.Info("Sender: Closing connection")
-		c.close()
-		c.cancel()
+		c.disconnect()
+		//c.cancel() // do not cancel the main app ctx
+		cancel() // cancel only listners&senders ctx
 	}()
 
 	// do handshake
@@ -124,43 +163,57 @@ func (c *Client) sender() {
 		c.msgCh <- message.NewKey(pem)
 		log.Debug("Sender: sent key")
 	}()
+	writer := bufio.NewWriter(conn)
 	for {
 		select {
-		case <-c.ctx.Done():
+		case <-ctx.Done():
 			return
 		case msg := <-c.msgCh:
 			// send bytes to the connection
 			mBytes, _ := msg.Serialize()
-			w, err := c.conn.Write(mBytes)
+			// w, err := conn.Write(mBytes)
+			// if err != nil {
+			// 	log.Fatalf("write error: %v\n", err)
+			// }
+			w, err := writer.Write(mBytes)
 			if err != nil {
-				log.Fatalf("write error: %v\n", err)
+				log.Fatalf("Sender: write error: %v\n", err)
 			}
-			log.Debugf("Wrote %d bytes\n", w)
+			err = writer.Flush()
+			if err != nil {
+				log.Errorf("Sender: Flush error: %v", err)
+				return
+			}
+			log.Debugf("Sender: Wrote %d bytes\n", w)
 		}
 	}
 }
 
-func (c *Client) listner() {
+func (c *Client) listner(conn net.Conn, ctx context.Context, cancel context.CancelFunc) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer func() {
 		log.Info("Listner: Closing connection")
-		c.close()
+		c.disconnect()
 		ticker.Stop()
-		c.cancel()
+		// c.cancel() // to not exit the app on disconnect, wait for another connection
+		cancel() // cancel only local context for listners
 	}()
 	for {
 		select {
-		case <-c.ctx.Done():
+		case <-ctx.Done():
 			return
 		case <-ticker.C:
 			// read bytes from the connection
 			bytes := make([]byte, cfg.MSG_MAX_SIZE)
-			n, err := c.conn.Read(bytes)
+			n, err := conn.Read(bytes)
 			if err != nil {
-				log.Errorf("Listner: read error: %v\n", err)
-				// TODO: do not disconnect, wait for reconnect
-				// continue
-				return
+				if err == io.EOF {
+					// The connection was closed.
+					log.Warnf("Listner: Connection closed: %v", err)
+					return
+				}
+				log.Errorf("Listner: Read error: %v", err)
+				continue
 			}
 			log.Debugf("Received: %d bytes:\n", n)
 			log.Debugf("raw: %v\n", bytes)
