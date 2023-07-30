@@ -3,11 +3,14 @@ package tor
 import (
 	"context"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/cretz/bine/tor"
 	"github.com/cretz/bine/torutil/ed25519"
+
 	// "golang.org/x/crypto/ed25519"
+	ct "go-dmtor/cryptotools"
 )
 
 func Run(ctx context.Context) error {
@@ -35,6 +38,21 @@ func Run(ctx context.Context) error {
 	}
 	defer onion.Close()
 	log.Infof("onion created - %s.onion\n", onion.ID)
+	// get public key bytes
+	pubKeyBytes := keyPair.Public().(ed25519.PublicKey)
+	// save to file to debug
+	_ = os.WriteFile("debug_onion.pub", pubKeyBytes, 0644)
+	hexkey := ct.KeyFromOnionPubKey(pubKeyBytes)
+	log.Warnf("connection key: %s\n", hexkey)
+	// decode back and compare
+	onionDecoded, err := ct.KeyToOnionAddress(hexkey)
+	if err != nil {
+		log.Fatalf("onion decode error: %v\n", err)
+	}
+	log.Warnf("onion decoded: %s\n", onionDecoded)
+	if onionDecoded != onion.ID {
+		log.Fatalf("onion decode error: %v != %v\n", onionDecoded, onion.ID)
+	}
 
 	// test connection
 	for {

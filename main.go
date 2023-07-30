@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"go-dmtor/client"
 	cfg "go-dmtor/config"
-	"go-dmtor/crypto"
+	ct "go-dmtor/cryptotools"
 	"go-dmtor/logger"
 	"go-dmtor/tor"
 	"os"
@@ -42,6 +42,10 @@ func main() {
 			if err != nil {
 				log.Fatalf("server connect error: %v\n", err)
 			}
+		case "demo":
+			// o := "onion pub key"
+			// h := ct.EncryptOnion(o)
+			// fmt.Printf("connection key: %s\n", h)
 		default:
 			log.Fatalf(usage, args[0])
 		}
@@ -90,28 +94,28 @@ func main() {
 }
 
 func crypt_demo() {
-	key := crypto.Keygen()
+	key := ct.Keygen()
 	// Get the public key
 	publicKey := &key.PublicKey
 
 	// test PEM
-	pubPem, err := crypto.PubToPem(publicKey)
+	pubPem, err := ct.PubToPem(publicKey)
 	if err != nil {
 		log.Fatalf("encode error: %v\n", err)
 	}
 	fmt.Printf("Public key pem: (%d) %x\n", len(pubPem), pubPem)
-	pubFromPem, err := crypto.PemToPub(pubPem)
+	pubFromPem, err := ct.PemToPub(pubPem)
 	if err != nil {
 		log.Fatalf("decode error: %v\n", err)
 	}
 
 	// test pub bytes
-	pubBytes, err := crypto.PubToBytes(publicKey)
+	pubBytes, err := ct.PubToBytes(publicKey)
 	if err != nil {
 		log.Fatalf("pub to bytes error: %v\n", err)
 	}
 	fmt.Printf("Public key bytes: (%d) %x\n", len(pubBytes), pubBytes)
-	pubFromBytes, err := crypto.BytesToPub(pubBytes)
+	pubFromBytes, err := ct.BytesToPub(pubBytes)
 	if err != nil {
 		log.Fatalf("bytes to pub error: %v\n", err)
 	}
@@ -123,11 +127,11 @@ func crypt_demo() {
 
 func crypt_demo_run(key *rsa.PrivateKey, pub *rsa.PublicKey, message string) {
 	// Encrypt a message
-	cipher := crypto.Encrypt([]byte(message), pub)
+	cipher := ct.Encrypt([]byte(message), pub)
 	fmt.Printf("Ciphertext: %x\n", cipher)
 
 	// Decrypt the message
-	plain := crypto.Decrypt(cipher, key)
+	plain := ct.Decrypt(cipher, key)
 	fmt.Printf("Plaintext: %s\n", plain)
 
 }

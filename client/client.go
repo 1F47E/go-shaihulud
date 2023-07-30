@@ -12,7 +12,7 @@ import (
 	"go-dmtor/client/connection"
 	"go-dmtor/client/message"
 	cfg "go-dmtor/config"
-	"go-dmtor/crypto"
+	ct "go-dmtor/cryptotools"
 	"go-dmtor/logger"
 )
 
@@ -30,7 +30,7 @@ type Client struct {
 }
 
 func NewClient(ctx context.Context, cancel context.CancelFunc, addr string) *Client {
-	key := crypto.Keygen()
+	key := ct.Keygen()
 	return &Client{
 		ctx:    ctx,
 		cancel: cancel,
@@ -144,7 +144,7 @@ func (c *Client) ServerConnect() error {
 }
 
 func (c *Client) SendMessage(msg []byte) {
-	inputCipher := crypto.Encrypt(msg, &c.conn.PubKey)
+	inputCipher := ct.Encrypt(msg, &c.conn.PubKey)
 	log.Debugf("inputCipher: %d %v\n", len(inputCipher), inputCipher)
 	c.msgCh <- message.NewMSG(inputCipher)
 }
@@ -162,7 +162,7 @@ func (c *Client) sender(ctx context.Context, cancel context.CancelFunc) {
 		// send hello
 		// c.msgCh <- message.NewHello()
 		// send our PEM key
-		pem, err := crypto.PubToBytes(&c.pubKey)
+		pem, err := ct.PubToBytes(&c.pubKey)
 		if err != nil {
 			log.Errorf("Sender: PEM pub key error: %v\n", err)
 			return
@@ -248,14 +248,14 @@ func (c *Client) listner(ctx context.Context, cancel context.CancelFunc) {
 			case message.MSG:
 				log.Debugf("raw msg:\n=====\n%s\n=====\n", string(msg.Body))
 				// decode msg
-				decrypted := crypto.Decrypt(msg.Data(), &c.privKey)
+				decrypted := ct.Decrypt(msg.Data(), &c.privKey)
 				now := time.Now().Format("15:04:05")
 				fmt.Printf("%s <%s> %s\n", now, c.conn.Name, string(decrypted))
 			case message.KEY:
 				log.Debugf("got public key from user: %d bytes\n%v", len(msg.Body), msg.Body)
 				log.Infof("recieving users pub key...")
 				// decode guest key from bytes
-				userPubKey, err := crypto.BytesToPub(msg.Body)
+				userPubKey, err := ct.BytesToPub(msg.Body)
 				if err != nil {
 					log.Errorf("error decoding user pub key: %v\n", err)
 				} else {
