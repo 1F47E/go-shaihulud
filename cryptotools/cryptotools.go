@@ -2,7 +2,11 @@ package cryptotools
 
 import (
 	"bytes"
+	"io"
+
 	// "crypto/ed25519"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -66,6 +70,60 @@ func KeyToOnionAddress(hexkey string) (string, error) {
 	onionAddress := base32.StdEncoding.EncodeToString(onionAddressBytes.Bytes())
 
 	return strings.ToLower(onionAddress), nil
+}
+
+func AESEncrypt(plaintext []byte, password string) ([]byte, error) {
+	// hash the password, because we need 256-bit key for encoding
+	// TODO: change slow key derivation function
+	// scrypt KDF
+	// docs https://pkg.go.dev/golang.org/x/crypto/scrypt
+	key := sha256.Sum256([]byte(password))
+
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+
+	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
+	return ciphertext, nil
+}
+
+func AESDecrypt(cipherBytes []byte, password string) ([]byte, error) {
+	// Hash the password
+	key := sha256.Sum256([]byte(password))
+
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	// get and check the nonce from the ciphertext
+	nonceSize := gcm.NonceSize()
+	if len(cipherBytes) < nonceSize {
+		return nil, fmt.Errorf("ciphertext too short")
+	}
+	nonce, cipherBytes := cipherBytes[:nonceSize], cipherBytes[nonceSize:]
+
+	plaintext, err := gcm.Open(nil, nonce, cipherBytes, nil)
+	if err != nil {
+		return nil, err
+	}
+	return plaintext, nil
 }
 
 // MSG encryption
