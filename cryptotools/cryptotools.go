@@ -2,9 +2,6 @@ package cryptotools
 
 import (
 	"bytes"
-	"io"
-
-	// "crypto/ed25519"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -13,10 +10,8 @@ import (
 	"crypto/x509"
 	"encoding/base32"
 	"encoding/hex"
-	"encoding/pem"
-	"errors"
 	"fmt"
-	"hash/fnv"
+	"io"
 	"log"
 	"strings"
 
@@ -24,10 +19,9 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// ONION ADDR encryption
+// ONION encryption
 
 // encrypt onion pub key to hex format
-// TODO: add AES encryption with password
 func KeyFromOnionPubKey(pubKey []byte) string {
 	// encode to HEX
 	hex := fmt.Sprintf("%x", pubKey)
@@ -72,6 +66,14 @@ func KeyToOnionAddress(hexkey string) (string, error) {
 	return strings.ToLower(onionAddress), nil
 }
 
+// AES
+
+func AESDeriveKey(password string) []byte {
+	// hash the password, because we need 256-bit key
+
+	return nil
+}
+
 func AESEncrypt(plaintext []byte, password string) ([]byte, error) {
 	// hash the password, because we need 256-bit key for encoding
 	// TODO: change slow key derivation function
@@ -100,6 +102,7 @@ func AESEncrypt(plaintext []byte, password string) ([]byte, error) {
 
 func AESDecrypt(cipherBytes []byte, password string) ([]byte, error) {
 	// Hash the password
+	// TODO: change to slow key derivation function
 	key := sha256.Sum256([]byte(password))
 
 	block, err := aes.NewCipher(key[:])
@@ -126,9 +129,9 @@ func AESDecrypt(cipherBytes []byte, password string) ([]byte, error) {
 	return plaintext, nil
 }
 
-// MSG encryption
+// MSG RSA encryption
 
-func Encrypt(msg []byte, publicKey *rsa.PublicKey) []byte {
+func MessageEncrypt(msg []byte, publicKey *rsa.PublicKey) []byte {
 	label := []byte("")
 	hash := sha256.New()
 	ciphertext, err := rsa.EncryptOAEP(hash, rand.Reader, publicKey, msg, label)
@@ -138,7 +141,7 @@ func Encrypt(msg []byte, publicKey *rsa.PublicKey) []byte {
 	return ciphertext
 }
 
-func Decrypt(ciphertext []byte, privateKey *rsa.PrivateKey) string {
+func MessageDecrypt(ciphertext []byte, privateKey *rsa.PrivateKey) string {
 	label := []byte("")
 	hash := sha256.New()
 	plaintext, err := rsa.DecryptOAEP(hash, rand.Reader, privateKey, ciphertext, label)
@@ -156,8 +159,6 @@ func Keygen() rsa.PrivateKey {
 	return *privateKey
 }
 
-// pub key conversion
-
 func PubToBytes(pub *rsa.PublicKey) ([]byte, error) {
 	return x509.MarshalPKIXPublicKey(pub)
 }
@@ -171,44 +172,21 @@ func BytesToPub(pubBytes []byte) (*rsa.PublicKey, error) {
 	return publicKey, nil
 }
 
-// PEM
-
-func PubToPem(pub *rsa.PublicKey) ([]byte, error) {
-	pubASN1, err := x509.MarshalPKIXPublicKey(pub)
+func AccessPinGenerate() string {
+	// format is AB3D-E2FA
+	b := make([]byte, 4)
+	_, err := rand.Read(b)
 	if err != nil {
-		return nil, err
+		// crypto/rand error. Highly unlikely.
+		log.Fatalf("error reading random bytes: %v", err)
 	}
-
-	pubBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: pubASN1,
-	})
-
-	return pubBytes, nil
-}
-
-// Function to decode an rsa.PublicKey from bytes
-func PemToPub(pubBytes []byte) (*rsa.PublicKey, error) {
-	block, _ := pem.Decode(pubBytes)
-	if block == nil {
-		return nil, errors.New("failed to parse PEM block")
+	pin := fmt.Sprintf("%x", b)
+	pin = strings.ToUpper(pin)
+	// split to 4 byte parts
+	parts := make([]string, 0)
+	for i := 0; i < len(pin); i += 4 {
+		parts = append(parts, pin[i:i+4])
 	}
-
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	switch pub := pub.(type) {
-	case *rsa.PublicKey:
-		return pub, nil
-	default:
-		return nil, errors.New("not RSA public key")
-	}
-}
-
-func HashToUInt(msg []byte) uint64 {
-	hash := fnv.New64a()
-	hash.Write(msg)
-	return hash.Sum64()
+	pin = strings.Join(parts, "-")
+	return pin
 }

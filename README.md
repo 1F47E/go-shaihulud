@@ -13,13 +13,17 @@ WIP p2p chat via tor network
 With keys exchange and RSA encryption
 
 # TODO
+- [ ] do onion routing
+- [ ] gen chat key for access, hide onion
+- [ ] cli on start generate key with pin
+- [ ] ack on message received
+- [ ] chat gui
+- [ ] send files
+- [ ] allow multiple users in a chat room
 - [x] basic tcp echo server
 - [x] basic chat server-client
 - [x] custom protocol with header
-- [ ] ack on message received
 - [x] chat via custom protocol
 - [x] handshake on connection, exchange public keys
 - [x] encrypt chat with public key
-- [ ] do onion routing
-- [ ] allow multiple users in a chat room
-- [ ] send files
+- [x] basic tor tcp connection

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rsa"
 	"fmt"
 	"go-dmtor/client"
 	cfg "go-dmtor/config"
@@ -18,6 +17,9 @@ var log = logger.New()
 var usage = "Usage: %s <srv|cli>\n"
 
 func main() {
+	pin := ct.AccessPinGenerate()
+	fmt.Printf("pin: %s\n", pin)
+	aes_demo(pin)
 	// crypt_demo()
 
 	// get input args
@@ -93,21 +95,28 @@ func main() {
 	log.Warn("Bye!")
 }
 
-func crypt_demo() {
+func aes_demo(pin string) {
+	test := []byte("123test123123123123")
+
+	// encode aes with password
+	cipher, err := ct.AESencrypt(test, pin)
+	if err != nil {
+		log.Fatalf("aes encrypt error: %v\n", err)
+	}
+	fmt.Printf("cipher: %x\n", cipher)
+
+	// decode back
+	plain, err := ct.AESdecrypt(cipher, pin)
+	if err != nil {
+		log.Fatalf("aes decrypt error: %v\n", err)
+	}
+	fmt.Printf("plain: %s\n", plain)
+}
+
+func rsa_demo() {
 	key := ct.Keygen()
 	// Get the public key
 	publicKey := &key.PublicKey
-
-	// test PEM
-	pubPem, err := ct.PubToPem(publicKey)
-	if err != nil {
-		log.Fatalf("encode error: %v\n", err)
-	}
-	fmt.Printf("Public key pem: (%d) %x\n", len(pubPem), pubPem)
-	pubFromPem, err := ct.PemToPub(pubPem)
-	if err != nil {
-		log.Fatalf("decode error: %v\n", err)
-	}
 
 	// test pub bytes
 	pubBytes, err := ct.PubToBytes(publicKey)
@@ -120,18 +129,14 @@ func crypt_demo() {
 		log.Fatalf("bytes to pub error: %v\n", err)
 	}
 
-	crypt_demo_run(&key, pubFromPem, "hello world 1 - pem")
-	crypt_demo_run(&key, pubFromBytes, "hello world 2 - bytes")
+	message := "Hello World!"
 
-}
-
-func crypt_demo_run(key *rsa.PrivateKey, pub *rsa.PublicKey, message string) {
 	// Encrypt a message
-	cipher := ct.Encrypt([]byte(message), pub)
+	cipher := ct.MessageEncrypt([]byte(message), pubFromBytes)
 	fmt.Printf("Ciphertext: %x\n", cipher)
 
 	// Decrypt the message
-	plain := ct.Decrypt(cipher, key)
+	plain := ct.MessageDecrypt(cipher, &key)
 	fmt.Printf("Plaintext: %s\n", plain)
 
 }

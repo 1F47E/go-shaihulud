@@ -144,7 +144,7 @@ func (c *Client) ServerConnect() error {
 }
 
 func (c *Client) SendMessage(msg []byte) {
-	inputCipher := ct.Encrypt(msg, &c.conn.PubKey)
+	inputCipher := ct.MessageEncrypt(msg, &c.conn.PubKey)
 	log.Debugf("inputCipher: %d %v\n", len(inputCipher), inputCipher)
 	c.msgCh <- message.NewMSG(inputCipher)
 }
@@ -248,7 +248,7 @@ func (c *Client) listner(ctx context.Context, cancel context.CancelFunc) {
 			case message.MSG:
 				log.Debugf("raw msg:\n=====\n%s\n=====\n", string(msg.Body))
 				// decode msg
-				decrypted := ct.Decrypt(msg.Data(), &c.privKey)
+				decrypted := ct.MessageDecrypt(msg.Data(), &c.privKey)
 				now := time.Now().Format("15:04:05")
 				fmt.Printf("%s <%s> %s\n", now, c.conn.Name, string(decrypted))
 			case message.KEY:
