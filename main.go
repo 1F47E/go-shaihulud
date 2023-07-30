@@ -8,6 +8,7 @@ import (
 	cfg "go-dmtor/config"
 	"go-dmtor/crypto"
 	"go-dmtor/logger"
+	"go-dmtor/tor"
 	"os"
 	"os/signal"
 )
@@ -25,26 +26,36 @@ func main() {
 		log.Fatalf(usage, args[0])
 	}
 	arg := args[1]
-	if arg != "srv" && arg != "cli" {
-		log.Fatalf(usage, args[0])
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	// start the server or connect
 	cli := client.NewClient(ctx, cancel, cfg.ADDR)
 	go func() {
-		if arg == "srv" {
-			err := cli.ServerStart()
-			if err != nil {
-				log.Fatalf("server start error: %v\n", err)
-			}
-		} else {
+		switch arg {
+		case "srv":
+			// err := cli.ServerStart()
+			// if err != nil {
+			// 	log.Fatalf("server start error: %v\n", err)
+			// }
+		case "cli":
 			err := cli.ServerConnect()
 			if err != nil {
 				log.Fatalf("server connect error: %v\n", err)
 			}
+		default:
+			log.Fatalf(usage, args[0])
 		}
 	}()
+
+	// start tor
+	if os.Getenv("TOR") == "1" {
+		go func() {
+			err := tor.Run(ctx)
+			if err != nil {
+				log.Fatalf("cant start tor: %v\n", err)
+			}
+		}()
+	}
 
 	// block and wait for user input
 	go func() {
