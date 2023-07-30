@@ -29,28 +29,22 @@ func main() {
 		log.Fatalf(usage, args[0])
 	}
 
-	// context for graceful shutdown and exit
 	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		stop := make(chan os.Signal, 1)
-		signal.Notify(stop, os.Interrupt)
-		<-stop
-		cancel()
-	}()
-
-	// start the client cli or server
+	// start the server or connect
 	cli := client.NewClient(ctx, cancel, cfg.ADDR)
-	if arg == "srv" {
-		err := cli.ServerStart()
-		if err != nil {
-			log.Fatalf("server start error: %v\n", err)
+	go func() {
+		if arg == "srv" {
+			err := cli.ServerStart()
+			if err != nil {
+				log.Fatalf("server start error: %v\n", err)
+			}
+		} else {
+			err := cli.ServerConnect()
+			if err != nil {
+				log.Fatalf("server connect error: %v\n", err)
+			}
 		}
-	} else {
-		err := cli.ServerConnect()
-		if err != nil {
-			log.Fatalf("server connect error: %v\n", err)
-		}
-	}
+	}()
 
 	// block and wait for user input
 	go func() {
@@ -71,6 +65,15 @@ func main() {
 			}
 		}
 	}()
+
+	// graceful shutdown
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt)
+		<-stop
+		cancel()
+	}()
+
 	<-ctx.Done()
 	log.Warn("Bye!")
 }
