@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"go-dmtor/client"
 	cfg "go-dmtor/config"
-	ct "go-dmtor/cryptotools"
+	myrsa "go-dmtor/cryptotools/rsa"
 	"go-dmtor/logger"
-	"go-dmtor/tor"
 	"os"
 	"os/signal"
 )
@@ -17,11 +15,6 @@ var log = logger.New()
 var usage = "Usage: %s <srv|cli>\n"
 
 func main() {
-	pin := ct.AccessPinGenerate()
-	fmt.Printf("pin: %s\n", pin)
-	aes_demo(pin)
-	// crypt_demo()
-
 	// get input args
 	args := os.Args
 	if len(args) == 1 {
@@ -30,38 +23,44 @@ func main() {
 	arg := args[1]
 
 	ctx, cancel := context.WithCancel(context.Background())
+
+	// create assym crypter for communication
+	crypter, err := myrsa.New()
+	if err != nil {
+		log.Fatalf("cant create crypter: %v\n", err)
+	}
+
 	// start the server or connect
-	cli := client.NewClient(ctx, cancel, cfg.ADDR)
+	cli := client.NewClient(ctx, cancel, cfg.ADDR, crypter)
+
+	// TODO: add new session command and connect to old session.
+	// or select a previous session from a list
 	go func() {
 		switch arg {
 		case "srv":
-			// err := cli.ServerStart()
-			// if err != nil {
-			// 	log.Fatalf("server start error: %v\n", err)
-			// }
+			err := cli.ServerStart()
+			if err != nil {
+				log.Fatalf("server start error: %v\n", err)
+			}
 		case "cli":
 			err := cli.ServerConnect()
 			if err != nil {
 				log.Fatalf("server connect error: %v\n", err)
 			}
-		case "demo":
-			// o := "onion pub key"
-			// h := ct.EncryptOnion(o)
-			// fmt.Printf("connection key: %s\n", h)
 		default:
 			log.Fatalf(usage, args[0])
 		}
 	}()
 
 	// start tor
-	if os.Getenv("TOR") == "1" {
-		go func() {
-			err := tor.Run(ctx)
-			if err != nil {
-				log.Fatalf("cant start tor: %v\n", err)
-			}
-		}()
-	}
+	// if os.Getenv("TOR") == "1" {
+	// 	go func() {
+	// 		err := tor.Run(ctx)
+	// 		if err != nil {
+	// 			log.Fatalf("cant start tor: %v\n", err)
+	// 		}
+	// 	}()
+	// }
 
 	// block and wait for user input
 	go func() {
@@ -78,7 +77,10 @@ func main() {
 					return
 				}
 				input = input[:n]
-				cli.SendMessage(input)
+				err = cli.SendMessage(input)
+				if err != nil {
+					log.Errorf("can't send a message: %v\n", err)
+				}
 			}
 		}
 	}()
@@ -95,48 +97,20 @@ func main() {
 	log.Warn("Bye!")
 }
 
-func aes_demo(pin string) {
-	test := []byte("123test123123123123")
-
-	// encode aes with password
-	cipher, err := ct.AESencrypt(test, pin)
-	if err != nil {
-		log.Fatalf("aes encrypt error: %v\n", err)
-	}
-	fmt.Printf("cipher: %x\n", cipher)
-
-	// decode back
-	plain, err := ct.AESdecrypt(cipher, pin)
-	if err != nil {
-		log.Fatalf("aes decrypt error: %v\n", err)
-	}
-	fmt.Printf("plain: %s\n", plain)
-}
-
-func rsa_demo() {
-	key := ct.Keygen()
-	// Get the public key
-	publicKey := &key.PublicKey
-
-	// test pub bytes
-	pubBytes, err := ct.PubToBytes(publicKey)
-	if err != nil {
-		log.Fatalf("pub to bytes error: %v\n", err)
-	}
-	fmt.Printf("Public key bytes: (%d) %x\n", len(pubBytes), pubBytes)
-	pubFromBytes, err := ct.BytesToPub(pubBytes)
-	if err != nil {
-		log.Fatalf("bytes to pub error: %v\n", err)
-	}
-
-	message := "Hello World!"
-
-	// Encrypt a message
-	cipher := ct.MessageEncrypt([]byte(message), pubFromBytes)
-	fmt.Printf("Ciphertext: %x\n", cipher)
-
-	// Decrypt the message
-	plain := ct.MessageDecrypt(cipher, &key)
-	fmt.Printf("Plaintext: %s\n", plain)
-
-}
+// func aes_demo(pin string) {
+// 	test := []byte("123test123123123123")
+//
+// 	// encode aes with password
+// 	cipher, err := ct.AESencrypt(test, pin)
+// 	if err != nil {
+// 		log.Fatalf("aes encrypt error: %v\n", err)
+// 	}
+// 	fmt.Printf("cipher: %x\n", cipher)
+//
+// 	// decode back
+// 	plain, err := ct.AESdecrypt(cipher, pin)
+// 	if err != nil {
+// 		log.Fatalf("aes decrypt error: %v\n", err)
+// 	}
+// 	fmt.Printf("plain: %s\n", plain)
+// }

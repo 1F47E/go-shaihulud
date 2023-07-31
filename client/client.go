@@ -3,7 +3,6 @@ package client
 import (
 	"bufio"
 	"context"
-	"crypto/rsa"
 	"fmt"
 	"io"
 	"net"
@@ -12,43 +11,35 @@ import (
 	"go-dmtor/client/connection"
 	"go-dmtor/client/message"
 	cfg "go-dmtor/config"
-	ct "go-dmtor/cryptotools"
+	is "go-dmtor/interfaces"
 	"go-dmtor/logger"
 )
 
 var log = logger.New()
 
 type Client struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	addr   string
-	conn   *connection.Connection
-	msgCh  chan message.Message
-
-	privKey rsa.PrivateKey
-	pubKey  rsa.PublicKey
+	ctx     context.Context
+	cancel  context.CancelFunc
+	addr    string
+	conn    *connection.Connection
+	msgCh   chan message.Message
+	crypter is.Asymmetric
 }
 
-func NewClient(ctx context.Context, cancel context.CancelFunc, addr string) *Client {
-	key := ct.Keygen()
+func NewClient(ctx context.Context, cancel context.CancelFunc, addr string, crypter is.Asymmetric) *Client {
 	return &Client{
-		ctx:    ctx,
-		cancel: cancel,
-		addr:   addr,
-		// connections: make(map[uint64]*connection.Connection),
+		ctx:     ctx,
+		cancel:  cancel,
+		addr:    addr,
 		msgCh:   make(chan message.Message),
-		privKey: key,
-		pubKey:  key.PublicKey,
+		crypter: crypter,
 	}
 }
 
 func (c *Client) disconnect() {
-	// close all connections
-	// for _, conn := range c.connections {
 	if c.conn != nil && c.conn.Conn != nil {
 		c.conn.Conn.Close()
 	}
-	// }
 }
 
 func (c *Client) ServerStart() error {
@@ -68,7 +59,6 @@ func (c *Client) ServerStart() error {
 	}
 	log.Infof("Main listening socket is open at %s", addr)
 
-	// TODO: handle multiple connections
 	// run listener accept in a sep G to allow shutdown
 	for {
 		select {
@@ -83,7 +73,6 @@ func (c *Client) ServerStart() error {
 				log.Errorf("accept error: %v\n", err)
 			}
 			ip := conn.RemoteAddr().String()
-			// connID := crypto.Hash([]byte(ip))
 			log.Debugf("Connection open for %s\n", ip)
 
 			if c.conn != nil && c.conn.Name != "" {
@@ -143,10 +132,14 @@ func (c *Client) ServerConnect() error {
 	}
 }
 
-func (c *Client) SendMessage(msg []byte) {
-	inputCipher := ct.MessageEncrypt(msg, &c.conn.PubKey)
+func (c *Client) SendMessage(msg []byte) error {
+	inputCipher, err := c.crypter.Encrypt(msg, c.conn.PubKey)
+	if err != nil {
+		return err
+	}
 	log.Debugf("inputCipher: %d %v\n", len(inputCipher), inputCipher)
 	c.msgCh <- message.NewMSG(inputCipher)
+	return nil
 }
 
 func (c *Client) sender(ctx context.Context, cancel context.CancelFunc) {
@@ -159,23 +152,19 @@ func (c *Client) sender(ctx context.Context, cancel context.CancelFunc) {
 
 	// do handshake
 	go func() {
-		// send hello
-		// c.msgCh <- message.NewHello()
-		// send our PEM key
-		pem, err := ct.PubToBytes(&c.pubKey)
-		if err != nil {
-			log.Errorf("Sender: PEM pub key error: %v\n", err)
-			return
-		}
-		c.msgCh <- message.NewKey(pem)
+		// send our pubkic key
+		pubKey := c.crypter.PubKey()
+		c.msgCh <- message.NewKey(pubKey)
 		log.Debug("Sender: sent key")
 	}()
+
 	writer := bufio.NewWriter(c.conn.Conn)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case msg := <-c.msgCh:
+			// TODO: check is there was a handshake
 			log.Debugf("Sender: Got msg: %v\n", msg)
 			// send bytes to the connection
 			mBytes, _ := msg.Serialize()
@@ -248,20 +237,18 @@ func (c *Client) listner(ctx context.Context, cancel context.CancelFunc) {
 			case message.MSG:
 				log.Debugf("raw msg:\n=====\n%s\n=====\n", string(msg.Body))
 				// decode msg
-				decrypted := ct.MessageDecrypt(msg.Data(), &c.privKey)
+				decrypted, err := c.crypter.Decrypt(msg.Data())
+				if err != nil {
+					log.Errorf("error decrypting msg: %v\n", err)
+					continue
+				}
 				now := time.Now().Format("15:04:05")
 				fmt.Printf("%s <%s> %s\n", now, c.conn.Name, string(decrypted))
 			case message.KEY:
 				log.Debugf("got public key from user: %d bytes\n%v", len(msg.Body), msg.Body)
-				log.Infof("recieving users pub key...")
-				// decode guest key from bytes
-				userPubKey, err := ct.BytesToPub(msg.Body)
-				if err != nil {
-					log.Errorf("error decoding user pub key: %v\n", err)
-				} else {
-					c.conn.Updade(userPubKey)
-					log.Warnf("<%s> entered the chat", c.conn.Name)
-				}
+				// save guest key
+				c.conn.Updade(msg.Body)
+				log.Infof("<%s> entered the chat", c.conn.Name)
 			default:
 				fmt.Printf(">>%s\n", msg.Type)
 				if msg.Len > 0 {

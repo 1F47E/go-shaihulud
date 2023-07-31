@@ -41,7 +41,7 @@ const (
 
 type Message struct {
 	Type  MsgType
-	Nonce uint32
+	Nonce uint32 // for ack
 	Len   uint32
 	Body  []byte
 }

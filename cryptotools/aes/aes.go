@@ -1,4 +1,4 @@
-package cryptotools
+package caes
 
 import (
 	"crypto/aes"
@@ -11,7 +11,10 @@ import (
 	"golang.org/x/crypto/scrypt"
 )
 
-func AESencrypt(data []byte, password string) ([]byte, error) {
+type AEScrypter struct{}
+
+// using scrypt for brute force resistance
+func (a *AEScrypter) Encrypt(data []byte, password string) ([]byte, error) {
 
 	// transform text password into appropriate 32 byte key for AES
 	salt, err := aesSaltGen()
@@ -55,7 +58,7 @@ func AESencrypt(data []byte, password string) ([]byte, error) {
 	return cipher, nil
 }
 
-func AESdecrypt(data []byte, password string) ([]byte, error) {
+func (a *AEScrypter) Decrypt(data []byte, password string) ([]byte, error) {
 
 	// data has salt already
 	// check input text length

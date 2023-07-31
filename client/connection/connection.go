@@ -1,7 +1,7 @@
 package connection
 
 import (
-	"crypto/rsa"
+	"crypto/sha256"
 	"fmt"
 	"net"
 	"strings"
@@ -10,28 +10,28 @@ import (
 )
 
 type Connection struct {
-	UUID string
-	Conn net.Conn
-	// ctx    context.Context
-	// cancel context.CancelFunc
+	UUID   string
+	Conn   net.Conn
 	Name   string
-	PubKey rsa.PublicKey
+	PubKey []byte // if nil - no handshake yet
 }
 
 func New(conn net.Conn) *Connection {
-	// c, cancel := context.WithCancel(ctx)
 	return &Connection{
 		UUID: uuid.New().String(),
 		Conn: conn,
-		// ctx:    c,
-		// cancel: cancel,
 	}
 }
 
-func (c *Connection) Updade(key *rsa.PublicKey) {
-	c.PubKey = *key
-	// make a name from first bytes or the pub key
-	hash := fmt.Sprintf("%x", key.N.Bytes()[0:2])
+func (c *Connection) Handshaked() bool {
+	return c.PubKey != nil
+}
+
+func (c *Connection) Updade(pubKey []byte) {
+	c.PubKey = pubKey
+	// make a name from first bytes or the hash of pub key
+	sha256Hash := sha256.Sum256(pubKey)
+	hash := fmt.Sprintf("%x", sha256Hash[0:2])
 	hash = strings.ToUpper(hash)
 	c.Name = hash
 }
