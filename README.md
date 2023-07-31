@@ -87,13 +87,15 @@ User B enters the access key and then the password to decrypt the onion address.
 - [ ] add timestamps to the messages to prevent replay attacks
 - [ ] sign every message with hmac to verify integrity and prevent MITM attacks
 - [ ] do onion routing
-- [ ] gen chat key for access, hide onion
+- [x] gen chat key for access, hide onion
 - [ ] cli on start generate key with password
 - [ ] ack on handshake received
 - [ ] ack on every message
 - [ ] chat gui
 - [ ] send files
 - [ ] allow multiple users in a chat room
+- [ ] test coverage for all packages
+- [x] test coverage for crypto packages
 - [x] basic tcp echo server
 - [x] basic chat server-client
 - [x] custom protocol with header

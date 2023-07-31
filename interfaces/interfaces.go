@@ -15,5 +15,6 @@ type Onioner interface {
 	PubKey() []byte
 	PrivateKey() []byte
 	Address() string
+	Session() string
 	Save() error
 }

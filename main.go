@@ -14,6 +14,8 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	"golang.org/x/term"
 )
 
 var log = logger.New()
@@ -45,6 +47,7 @@ func main() {
 	go func() {
 		switch arg {
 		case "srv":
+			// TODO: refactor to work with custom tor connection
 			err := cli.ServerStart()
 			if err != nil {
 				log.Fatalf("server start error: %v\n", err)
@@ -54,6 +57,39 @@ func main() {
 			if err != nil {
 				log.Fatalf("server connect error: %v\n", err)
 			}
+		// test auth key decoding
+		case "key":
+			// get key as a param
+			if len(args) != 3 {
+				log.Fatalf("Usage: %s key <key>\n", args[0])
+			}
+			key := args[2]
+
+			// ask for password from user input
+			log.Info("Enter password:")
+
+			password, err := term.ReadPassword(int(os.Stdin.Fd()))
+			if err != nil {
+				log.Fatalf("Error reading password: %v", err)
+			}
+
+			log.Debugf("password (%d): %s", len(password), password)
+			if len(password) != 9 {
+				log.Fatalf("password must be %d characters long\n", 9)
+			}
+
+			crypter := myaes.New()
+			ath, err := auth.NewFromKey(crypter, key, string(password))
+			if err != nil {
+				log.Fatalf("cant create auth: %v\n", err)
+			}
+			log.Warnf("%s", ath)
+			// get onion address from the key
+			log.Infof("onion address: %s\n", ath.OnionAddress())
+			log.Info("SUCCESS")
+
+		// test tor connection, onion generator and auth
+		// TODO: move to client, start server
 		case "tor":
 			// check session param
 			session := ""
@@ -71,7 +107,7 @@ func main() {
 					log.Fatalf("cant create onion: %v\n", err)
 				}
 				onioner = o
-				log.Infof("session created - %s\n", onioner.Address())
+				log.Infof("session created - %s\n", onioner.Session())
 			} else {
 				// load onion from the session file
 				o, err := onion.NewFromSession(session)
@@ -79,11 +115,20 @@ func main() {
 					log.Fatalf("cant load session: %v\n", err)
 				}
 				onioner = o
-				log.Infof("session loaded - %s\n", onioner.Address())
+				log.Infof("session loaded - %s\n", onioner.Session())
 			}
 			log.Debugf("onioner loaded: %v\n", onioner)
 
-			// run tor with the key
+			// create auth struct will password
+			// and give it to the user
+			// TODO: move after tor connection
+			crypter := myaes.New()
+			auth := auth.New(crypter, onioner)
+			log.Warnf("%s", auth)
+			// TODO: move to auth save?
+			err = onioner.Save()
+
+			// start tor with the onion key
 			log.Info("Starting tor, please wait. It can take a few minutes...")
 			torconn, err := tor.Run(ctx, onioner)
 			if err != nil {
@@ -99,12 +144,6 @@ func main() {
 					log.Fatalf("cant save session: %v\n", err)
 				}
 			}
-
-			// create auth struct will password
-			// and give it to the user
-			crypter := myaes.New()
-			auth := auth.New(crypter, onioner)
-			log.Warnf("%s", auth)
 
 			// test connection
 			// listen to tor connection
@@ -136,6 +175,7 @@ func main() {
 	// }
 
 	// block and wait for user input
+	// TODO: move to function. to not run if asking password
 	go func() {
 		for {
 			select {

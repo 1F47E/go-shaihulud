@@ -61,7 +61,7 @@ func New(crypter interfaces.Symmetric, onion interfaces.Onioner) *Auth {
 	}
 }
 
-func NewFromKey(crypter interfaces.Symmetric, accessKey string) (*Auth, error) {
+func NewFromKey(crypter interfaces.Symmetric, accessKey, password string) (*Auth, error) {
 	// TODO: test
 	keyBytes, err := Decode(accessKey)
 	if err != nil {
@@ -74,6 +74,7 @@ func NewFromKey(crypter interfaces.Symmetric, accessKey string) (*Auth, error) {
 	return &Auth{
 		crypter:   crypter,
 		accessKey: accessKey,
+		password:  password,
 		onion:     onion,
 	}, nil
 }
@@ -86,10 +87,16 @@ func (ac *Auth) Decrypt(ciphertext []byte) ([]byte, error) {
 }
 
 func (ac *Auth) String() string {
-	return fmt.Sprintf("Access key: %s\nPassword: %s", ac.accessKey, ac.password)
+	return fmt.Sprintf("=====\nAccess key: %s\nPassword: %s\n=====", ac.accessKey, ac.password)
+}
+
+func (ac *Auth) OnionAddress() string {
+	return ac.onion.Address()
 }
 
 // ETC
+// len is 9 bytes
+// TODO: make a test
 func generatePassword() string {
 	// format is AB3D-E2FA
 	b := make([]byte, 4)

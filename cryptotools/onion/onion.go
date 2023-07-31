@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/base32"
 	"fmt"
+	"go-dmtor/config"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	// "crypto/rand"
+
 	"math/rand"
 
 	"github.com/cretz/bine/torutil/ed25519"
@@ -17,7 +19,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-const SESSION_DIR = "sessions"
+var SESSION_DIR = config.SESSION_DIR
 
 // Functions
 // Read onion struct from session file
@@ -28,6 +30,7 @@ type Onion struct {
 	pubKey      *ed25519.PublicKey
 	pubKeyBytes []byte
 	address     string
+	session     string
 }
 
 // new tor session
@@ -41,8 +44,9 @@ func New() (*Onion, error) {
 }
 
 // new tor session from session file (priv key)
-func NewFromSession(filename string) (*Onion, error) {
-	path := filepath.Join(SESSION_DIR, filename)
+func NewFromSession(address string) (*Onion, error) {
+	session := sessionName(address)
+	path := filepath.Join(SESSION_DIR, session)
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -59,7 +63,8 @@ func NewFromPrivKey(privKeyBytes []byte) (*Onion, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Onion{&privKey, &pubKey, pubKeyBytes, address}, nil
+	session := sessionName(address)
+	return &Onion{&privKey, &pubKey, pubKeyBytes, address, session}, nil
 }
 
 func (o *Onion) PubKey() []byte {
@@ -74,6 +79,10 @@ func (o *Onion) Address() string {
 	return o.address
 }
 
+func (o *Onion) Session() string {
+	return o.session
+}
+
 // TODO: save as session ID not onion address
 func (o *Onion) Save() error {
 	// create session dir if not exists
@@ -81,7 +90,7 @@ func (o *Onion) Save() error {
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(SESSION_DIR, fmt.Sprintf("%s.onion", o.address))
+	path := filepath.Join(SESSION_DIR, o.session)
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -92,6 +101,23 @@ func (o *Onion) Save() error {
 		return err
 	}
 	return nil
+}
+
+// TODO: move to utils
+func sessionName(address string) string {
+	hash := sha3.Sum256([]byte(address))
+	hex := strings.ToUpper(fmt.Sprintf("%x", hash))
+	// split into 4 parts
+	parts := []string{}
+	p := 4
+	for i := 0; i < p; i++ {
+		parts = append(parts, hex[i*p:i*p+p])
+		// keep only 2 parts
+		if len(parts) == 2 {
+			break
+		}
+	}
+	return strings.Join(parts, "-")
 }
 
 func pubKeyToAddress(pubKeyBytes []byte) (string, error) {

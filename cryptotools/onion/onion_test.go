@@ -24,7 +24,7 @@ func TestOnion(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Try to load the onion from the saved session file
-		onion2, err := NewFromSession(onion.Address() + ".onion")
+		onion2, err := NewFromSession(onion.Address())
 		assert.NoError(t, err)
 		assert.NotNil(t, onion2)
 
@@ -34,8 +34,13 @@ func TestOnion(t *testing.T) {
 		assert.Equal(t, onion.Address(), onion2.Address())
 
 		// Clean up session file
-		err = os.Remove(SESSION_DIR + "/" + onion.Address() + ".onion")
+		err = os.Remove(SESSION_DIR + "/" + onion.Session())
 		assert.NoError(t, err)
+
+		// remove all files
+		err = os.RemoveAll(SESSION_DIR)
+		assert.NoError(t, err)
+
 	})
 
 	t.Run("NewFromPrivKey", func(t *testing.T) {
@@ -64,7 +69,7 @@ func TestOnion(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Check if the session file was created
-		filename := SESSION_DIR + "/" + onion.Address() + ".onion"
+		filename := SESSION_DIR + "/" + onion.Session()
 		_, err = os.Stat(filename)
 		assert.NoError(t, err)
 
@@ -75,6 +80,10 @@ func TestOnion(t *testing.T) {
 
 		// Clean up session file
 		err = os.Remove(filename)
+		assert.NoError(t, err)
+
+		// Cleanup folder
+		err = os.Remove(SESSION_DIR)
 		assert.NoError(t, err)
 	})
 }
