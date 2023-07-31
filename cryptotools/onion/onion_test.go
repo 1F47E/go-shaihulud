@@ -8,8 +8,8 @@ import (
 
 func TestOnionEncryptDecrypt(t *testing.T) {
 	// demo data
-	keyHex := "207996b0f5b70b25e0a94fe1cbb365a4a26e6ade6d5e66818ea25467e2005550be4a38a3eefb4c53427a22a4c208937e6c0cbe47cb62d2a477cb0820d40b6ecf"
-	expected_onion := "xzfdri7o7ngfgqt2eksmecetpzwazpshznrnfjdxzmecbvaln3h2dbqd"
+	keyHex := "f86af341ed3a612ff0754c77b33b60eb1cd40ed204603134217bc857fc411867f2ff4a987ffefcdb3a8c1b5af8f22aff8bcdeb4420426b491747f73fc5327d24"
+	expected_onion := "gbislcwjbx2h3pkdavsaqku3mlx4tcnfhmpq2gji5nyegrbrsqcvv6qd"
 
 	keyBytes, err := hex.DecodeString(keyHex)
 	if err != nil {

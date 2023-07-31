@@ -50,12 +50,15 @@ func main() {
 				log.Fatalf("server connect error: %v\n", err)
 			}
 		case "tor":
-			go func() {
-				err := tor.Run(ctx)
-				if err != nil {
-					log.Fatalf("cant start tor: %v\n", err)
-				}
-			}()
+			// check session param
+			session := ""
+			if len(args) == 3 {
+				session = args[2]
+			}
+			err := tor.Run(ctx, session)
+			if err != nil {
+				log.Fatalf("cant start tor: %v\n", err)
+			}
 		default:
 			log.Fatalf(usage, args[0])
 		}
