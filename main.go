@@ -6,6 +6,7 @@ import (
 	cfg "go-dmtor/config"
 	myrsa "go-dmtor/cryptotools/rsa"
 	"go-dmtor/logger"
+	"go-dmtor/tor"
 	"os"
 	"os/signal"
 )
@@ -15,6 +16,7 @@ var log = logger.New()
 var usage = "Usage: %s <srv|cli>\n"
 
 func main() {
+
 	// get input args
 	args := os.Args
 	if len(args) == 1 {
@@ -47,6 +49,13 @@ func main() {
 			if err != nil {
 				log.Fatalf("server connect error: %v\n", err)
 			}
+		case "tor":
+			go func() {
+				err := tor.Run(ctx)
+				if err != nil {
+					log.Fatalf("cant start tor: %v\n", err)
+				}
+			}()
 		default:
 			log.Fatalf(usage, args[0])
 		}

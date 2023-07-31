@@ -4,51 +4,49 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"encoding/base32"
-	"encoding/hex"
 	"fmt"
+	"os"
 	"strings"
 
 	"golang.org/x/crypto/sha3"
 )
 
-// encrypt onion pub key to hex format
-func KeyFromOnionPubKey(pubKey []byte) string {
-	// encode to HEX
-	hex := fmt.Sprintf("%x", pubKey)
-	hex = strings.ToUpper(hex)
-	// split to 4 byte parts
-	parts := make([]string, 0)
-	for i := 0; i < len(hex); i += 4 {
-		parts = append(parts, hex[i:i+4])
-	}
-	return strings.Join(parts, "-")
-}
-func KeyToOnionPubKey(hexkey string) ([]byte, error) {
-	bHex := strings.ReplaceAll(hexkey, "-", "")
-	bHex = strings.ToLower(bHex)
-	return hex.DecodeString(bHex)
-}
-
-func KeyToOnionAddress(hexkey string) (string, error) {
-	pubKeyBytes, err := KeyToOnionPubKey(hexkey)
+func PrivKeyFileToOnionAddress(privKeyFile string) (string, error) {
+	keybytes, err := os.ReadFile(privKeyFile)
 	if err != nil {
 		return "", err
 	}
+	return PrivKeyBytesToOnionAddress(keybytes)
+}
 
-	publicKey := ed25519.PublicKey(pubKeyBytes)
+func PrivKeyBytesToOnionAddress(privKeyBytes []byte) (string, error) {
+	if len(privKeyBytes) != 64 {
+		return "", fmt.Errorf("invalid priv key bytes length: %d", len(privKeyBytes))
+	}
+	keyPair := ed25519.PrivateKey(privKeyBytes)
+	// get public key bytes
+	pubKeyBytes := keyPair.Public().(ed25519.PublicKey)
+	// get onion from public key
+	addr, err := PubKeyToOnionAddress(pubKeyBytes)
+	if err != nil {
+		return "", err
+	}
+	return addr, nil
+}
 
-	// convert from pub key to onion address
+func PubKeyToOnionAddress(pubKeyBytes []byte) (string, error) {
+	pubKey := ed25519.PublicKey(pubKeyBytes)
 
 	// checksum = H(".onion checksum" || pubkey || version)
 	var checksumBytes bytes.Buffer
 	checksumBytes.Write([]byte(".onion checksum"))
-	checksumBytes.Write([]byte(publicKey))
+	checksumBytes.Write([]byte(pubKey))
 	checksumBytes.Write([]byte{0x03})
 	checksum := sha3.Sum256(checksumBytes.Bytes())
 
 	// onion_address = base32(pubkey || checksum || version)
 	var onionAddressBytes bytes.Buffer
-	onionAddressBytes.Write([]byte(publicKey))
+	onionAddressBytes.Write([]byte(pubKey))
 	onionAddressBytes.Write([]byte(checksum[:2]))
 	onionAddressBytes.Write([]byte{0x03})
 	onionAddress := base32.StdEncoding.EncodeToString(onionAddressBytes.Bytes())

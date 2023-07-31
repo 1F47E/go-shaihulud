@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"go-dmtor/interfaces"
 	"log"
@@ -23,7 +24,8 @@ func (ac *Auth) Decrypt(ciphertext []byte, password string) ([]byte, error) {
 	return ac.crypter.Decrypt(ciphertext, password)
 }
 
-func newPin() string {
+// ETC
+func generatePassword() string {
 	// format is AB3D-E2FA
 	b := make([]byte, 4)
 	_, err := rand.Read(b)
@@ -40,4 +42,24 @@ func newPin() string {
 	}
 	pin = strings.Join(parts, "-")
 	return pin
+}
+
+// ONION STUFF
+// encrypt onion pub key to hex format
+func AuthKeyFromOnionPubKey(pubKey []byte) string {
+	// encode to HEX
+	hex := fmt.Sprintf("%x", pubKey)
+	hex = strings.ToUpper(hex)
+	// split to 4 byte parts
+	parts := make([]string, 0)
+	for i := 0; i < len(hex); i += 4 {
+		parts = append(parts, hex[i:i+4])
+	}
+	return strings.Join(parts, "-")
+}
+
+func AuthKeyToOnionPubKey(hexkey string) ([]byte, error) {
+	bHex := strings.ReplaceAll(hexkey, "-", "")
+	bHex = strings.ToLower(bHex)
+	return hex.DecodeString(bHex)
 }
