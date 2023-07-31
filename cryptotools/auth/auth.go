@@ -1,3 +1,21 @@
+// The AUTH package works with an access key and password.
+//
+// The access key is a readable binary key in hex format
+// that resembles 1234-ABCD-EFGH-5678....
+// This key represents the AES-encrypted onion address.
+//
+// The password is used to encrypt/decrypt the access key to obtain the onion address,
+// which takes a form like 1234-ABCD.
+// The password consists of random bytes converted to upper-case hex format.
+// It is also used to sign messages via HMAC to verify message integrity.
+//
+// Workflow:
+// User A (server), after connecting to Tor and generating an onion address,
+// encrypts this address with a randomly generated password.
+// User A then shares the access key (AES-encrypted onion address) and password with User B.
+// The password and access key should be shared via different channels for security.
+// User B enters the access key and then the password to decrypt the onion address.
+
 package auth
 
 import (
