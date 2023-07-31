@@ -12,11 +12,50 @@
 WIP p2p chat via tor network
 With keys exchange and RSA encryption
 
+# Connection flow
+```
+Client A starts the chat server
+Client A shares the access key and password with Client B
+Client B enters the access key and password to decrypt the onion address
+Client B connects to the onion address
+Clients exchange public keys
+Clients encrypt messages with each other's public keys
+```
+
+
+# Access key and password
+```
+The access key is a readable binary key in hex format
+that resembles 1234-ABCD-EFGH-5678....
+This key represents the AES-encrypted onion address.
+
+The password is used to encrypt/decrypt the access key to obtain the onion address,
+which takes a form like 1234-ABCD.
+
+The password consists of random bytes converted to upper-case hex format.
+
+It is also used to sign messages via HMAC to verify message integrity.
+
+Workflow:
+
+User A (server), after connecting to Tor and generating an onion address, encrypts this address with a randomly generated password.
+
+User A then shares the access key (AES-encrypted onion address) and password with User B.
+
+The password and access key should be shared via different channels for security.
+
+User B enters the access key and then the password to decrypt the onion address.
+```
+
+
 # TODO
+- [ ] add timestamps to the messages to prevent replay attacks
+- [ ] sign every message with hmac to verify integrity and prevent MITM attacks
 - [ ] do onion routing
 - [ ] gen chat key for access, hide onion
-- [ ] cli on start generate key with pin
-- [ ] ack on message received
+- [ ] cli on start generate key with password
+- [ ] ack on handshake received
+- [ ] ack on every message
 - [ ] chat gui
 - [ ] send files
 - [ ] allow multiple users in a chat room
