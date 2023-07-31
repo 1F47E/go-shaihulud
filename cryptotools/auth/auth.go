@@ -8,18 +8,18 @@ import (
 	"strings"
 )
 
-type AccessKeyCrypter struct {
+type Auth struct {
 	crypter interfaces.Symmetric
 }
 
-func New(crypter interfaces.Symmetric) *AccessKeyCrypter {
-	return &AccessKeyCrypter{crypter}
+func New(crypter interfaces.Symmetric) *Auth {
+	return &Auth{crypter}
 }
 
-func (ac *AccessKeyCrypter) Encrypt(plaintext []byte, password string) ([]byte, error) {
+func (ac *Auth) Encrypt(plaintext []byte, password string) ([]byte, error) {
 	return ac.crypter.Encrypt(plaintext, password)
 }
-func (ac *AccessKeyCrypter) Decrypt(ciphertext []byte, password string) ([]byte, error) {
+func (ac *Auth) Decrypt(ciphertext []byte, password string) ([]byte, error) {
 	return ac.crypter.Decrypt(ciphertext, password)
 }
 
