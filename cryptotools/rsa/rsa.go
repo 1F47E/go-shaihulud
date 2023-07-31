@@ -23,22 +23,22 @@ func New() (*RsaCrypter, error) {
 		return nil, err
 	}
 	pubKey := &privKey.PublicKey
-	log.Printf("rsa public key: %x\n", pubKey)
-	pubKeyBytes := x509.MarshalPKCS1PublicKey(pubKey)
-	log.Printf("rsa public key bytes: %x\n", pubKeyBytes)
+	// key debug
+	// log.Printf("rsa public key: %x\n", pubKey)
+	// pubKeyBytes := x509.MarshalPKCS1PublicKey(pubKey)
+	// log.Printf("rsa public key bytes: %x\n", pubKeyBytes)
 	// get PEM format of pubblic key
-	pubKeyPem := x509.MarshalPKCS1PublicKey(pubKey)
-	log.Printf("rsa public key pem: %x\n", pubKeyPem)
+	// pubKeyPem := x509.MarshalPKCS1PublicKey(pubKey)
+	// log.Printf("rsa public key pem: %x\n", pubKeyPem)
 
 	return &RsaCrypter{privKey: privKey, pubKey: pubKey}, nil
 }
 
 func (r *RsaCrypter) Encrypt(data []byte, pubKeyBytes []byte) ([]byte, error) {
-	pubKeyInterface, err := x509.ParsePKIXPublicKey(pubKeyBytes)
+	pubKey, err := x509.ParsePKCS1PublicKey(pubKeyBytes)
 	if err != nil {
 		return nil, err
 	}
-	pubKey := pubKeyInterface.(*rsa.PublicKey)
 	label := []byte("")
 	hash := sha256.New()
 	ciphertext, err := rsa.EncryptOAEP(hash, rand.Reader, pubKey, data, label)
