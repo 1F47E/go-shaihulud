@@ -5,29 +5,31 @@ import (
 	"testing"
 
 	"go-dmtor/cryptotools/auth"
+	"go-dmtor/cryptotools/onion"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAESCrypter(t *testing.T) {
-	var myaes = new(AEScrypter)
-	crypter := auth.New(myaes)
-	password := "myPassword"
+	t.Run("Encryption and Decryption", func(t *testing.T) {
+		var myaes = new(AEScrypter)
 
-	data := []byte("Hello World!")
+		oni, err := onion.New()
+		assert.NoError(t, err)
 
-	// Encrypt a message
-	cipher, err := crypter.Encrypt(data, password)
-	if err != nil {
-		t.Fatalf("encrypt error: %v\n", err)
-	}
+		crypter := auth.New(myaes, oni)
 
-	// Decrypt the message
-	plain, err := crypter.Decrypt(cipher, password)
-	if err != nil {
-		t.Fatalf("decrypt error: %v\n", err)
-	}
+		data := []byte("Hello World!")
 
-	// Test assert original and decoded
-	if !bytes.Equal(plain, data) {
-		t.Fatalf("original and decoded do not match: %s != %s\n", plain, data)
-	}
+		// Encrypt a message
+		cipher, err := crypter.Encrypt(data)
+		assert.NoError(t, err, "Encrypt error")
+
+		// Decrypt the message
+		plain, err := crypter.Decrypt(cipher)
+		assert.NoError(t, err, "Decrypt error")
+
+		// Test assert original and decoded
+		assert.True(t, bytes.Equal(plain, data), "Original and decoded do not match: %s != %s", plain, data)
+	})
 }

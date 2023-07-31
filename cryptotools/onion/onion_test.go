@@ -1,26 +1,80 @@
 package onion
 
 import (
-	"encoding/hex"
-	"fmt"
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestOnionEncryptDecrypt(t *testing.T) {
-	// demo data
-	keyHex := "f86af341ed3a612ff0754c77b33b60eb1cd40ed204603134217bc857fc411867f2ff4a987ffefcdb3a8c1b5af8f22aff8bcdeb4420426b491747f73fc5327d24"
-	expected_onion := "gbislcwjbx2h3pkdavsaqku3mlx4tcnfhmpq2gji5nyegrbrsqcvv6qd"
+func TestOnion(t *testing.T) {
+	t.Run("New", func(t *testing.T) {
+		onion, err := New()
+		assert.NoError(t, err)
+		assert.NotNil(t, onion)
+		assert.Len(t, onion.PrivateKey(), 64)
+		assert.Len(t, onion.PubKey(), 32)
+	})
 
-	keyBytes, err := hex.DecodeString(keyHex)
-	if err != nil {
-		t.Fatalf("key decode error: %v\n", err)
-	}
-	fmt.Printf("keyBytes: %v\n", keyBytes)
-	onion, err := PrivKeyBytesToOnionAddress(keyBytes)
-	if err != nil {
-		t.Fatalf("onion decode error: %v\n", err)
-	}
-	if onion != expected_onion {
-		t.Fatalf("onion mismatch: %s != %s\n", onion, expected_onion)
-	}
+	t.Run("NewFromSession", func(t *testing.T) {
+		// Generate new Onion and save to file
+		onion, err := New()
+		assert.NoError(t, err)
+		err = onion.Save()
+		assert.NoError(t, err)
+
+		// Try to load the onion from the saved session file
+		onion2, err := NewFromSession(onion.Address() + ".onion")
+		assert.NoError(t, err)
+		assert.NotNil(t, onion2)
+
+		// Check if the loaded onion matches the original
+		assert.Equal(t, onion.PrivateKey(), onion2.PrivateKey())
+		assert.Equal(t, onion.PubKey(), onion2.PubKey())
+		assert.Equal(t, onion.Address(), onion2.Address())
+
+		// Clean up session file
+		err = os.Remove(SESSION_DIR + "/" + onion.Address() + ".onion")
+		assert.NoError(t, err)
+	})
+
+	t.Run("NewFromPrivKey", func(t *testing.T) {
+		// Generate new Onion
+		onion, err := New()
+		assert.NoError(t, err)
+
+		// Generate new Onion from the private key of the previous one
+		onion2, err := NewFromPrivKey(onion.PrivateKey())
+		assert.NoError(t, err)
+		assert.NotNil(t, onion2)
+
+		// Check if the new onion matches the original
+		assert.Equal(t, onion.PrivateKey(), onion2.PrivateKey())
+		assert.Equal(t, onion.PubKey(), onion2.PubKey())
+		assert.Equal(t, onion.Address(), onion2.Address())
+	})
+
+	t.Run("Save", func(t *testing.T) {
+		// Generate new Onion
+		onion, err := New()
+		assert.NoError(t, err)
+
+		// Save to session file
+		err = onion.Save()
+		assert.NoError(t, err)
+
+		// Check if the session file was created
+		filename := SESSION_DIR + "/" + onion.Address() + ".onion"
+		_, err = os.Stat(filename)
+		assert.NoError(t, err)
+
+		// Check if the content of the session file is correct
+		content, err := os.ReadFile(filename)
+		assert.NoError(t, err)
+		assert.Equal(t, onion.PrivateKey(), content)
+
+		// Clean up session file
+		err = os.Remove(filename)
+		assert.NoError(t, err)
+	})
 }

@@ -22,24 +22,71 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"go-dmtor/cryptotools/onion"
 	"go-dmtor/interfaces"
 	"log"
 	"strings"
 )
 
+// TODO:
+// on server startup
+// - generate password
+// - after onion is created, encrypt it with a random password
+// - format encrypted binary as access key AB3D-E2FA-...
+// - display access key to user
+// on connection
+// - user enters access key
+// - ask for password
+// - save passwrod for signatures
+// - decrypt access key, get onion address
+// - connect to onion address
+// - add hmac signature to messages
+
 type Auth struct {
-	crypter interfaces.Symmetric
+	crypter   interfaces.Symmetric
+	password  string
+	accessKey string
+	onion     interfaces.Onioner
 }
 
-func New(crypter interfaces.Symmetric) *Auth {
-	return &Auth{crypter}
+func New(crypter interfaces.Symmetric, onion interfaces.Onioner) *Auth {
+	password := generatePassword()
+	accessKey := Encode(onion.PubKey())
+
+	return &Auth{
+		crypter:   crypter,
+		onion:     onion,
+		password:  password,
+		accessKey: accessKey,
+	}
 }
 
-func (ac *Auth) Encrypt(plaintext []byte, password string) ([]byte, error) {
-	return ac.crypter.Encrypt(plaintext, password)
+func NewFromKey(crypter interfaces.Symmetric, accessKey string) (*Auth, error) {
+	// TODO: test
+	keyBytes, err := Decode(accessKey)
+	if err != nil {
+		return nil, err
+	}
+	onion, err := onion.NewFromPrivKey(keyBytes)
+	if err != nil {
+		return nil, err
+	}
+	return &Auth{
+		crypter:   crypter,
+		accessKey: accessKey,
+		onion:     onion,
+	}, nil
 }
-func (ac *Auth) Decrypt(ciphertext []byte, password string) ([]byte, error) {
-	return ac.crypter.Decrypt(ciphertext, password)
+
+func (ac *Auth) Encrypt(plaintext []byte) ([]byte, error) {
+	return ac.crypter.Encrypt(plaintext, ac.password)
+}
+func (ac *Auth) Decrypt(ciphertext []byte) ([]byte, error) {
+	return ac.crypter.Decrypt(ciphertext, ac.password)
+}
+
+func (ac *Auth) String() string {
+	return fmt.Sprintf("Access key: %s\nPassword: %s", ac.accessKey, ac.password)
 }
 
 // ETC
@@ -62,9 +109,10 @@ func generatePassword() string {
 	return pin
 }
 
-// ONION STUFF
+// TODO: rewrite to be a method of a sctuct
 // encrypt onion pub key to hex format
-func AuthKeyFromOnionPubKey(pubKey []byte) string {
+// example of access key format: AB3D-E2FA-...
+func Encode(pubKey []byte) string {
 	// encode to HEX
 	hex := fmt.Sprintf("%x", pubKey)
 	hex = strings.ToUpper(hex)
@@ -76,8 +124,9 @@ func AuthKeyFromOnionPubKey(pubKey []byte) string {
 	return strings.Join(parts, "-")
 }
 
-func AuthKeyToOnionPubKey(hexkey string) ([]byte, error) {
-	bHex := strings.ReplaceAll(hexkey, "-", "")
+// decode from custom hex format to bytes
+func Decode(key string) ([]byte, error) {
+	bHex := strings.ReplaceAll(key, "-", "")
 	bHex = strings.ToLower(bHex)
 	return hex.DecodeString(bHex)
 }

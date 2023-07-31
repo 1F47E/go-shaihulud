@@ -10,3 +10,10 @@ type Asymmetric interface {
 	Decrypt([]byte) ([]byte, error)
 	PubKey() []byte
 }
+
+type Onioner interface {
+	PubKey() []byte
+	PrivateKey() []byte
+	Address() string
+	Save() error
+}

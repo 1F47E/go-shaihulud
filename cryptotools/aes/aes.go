@@ -13,6 +13,10 @@ import (
 
 type AEScrypter struct{}
 
+func New() *AEScrypter {
+	return new(AEScrypter)
+}
+
 // using scrypt for brute force resistance
 func (a *AEScrypter) Encrypt(data []byte, password string) ([]byte, error) {
 

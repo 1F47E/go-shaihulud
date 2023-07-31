@@ -7,6 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	// "crypto/rand"
+	"math/rand"
 
 	"github.com/cretz/bine/torutil/ed25519"
 
@@ -15,59 +19,82 @@ import (
 
 const SESSION_DIR = "sessions"
 
-func PrivKeySave(privKey []byte) error {
+// Functions
+// Read onion struct from session file
+// Create onion struct from priv key bytes
+
+type Onion struct {
+	keyPair     *ed25519.PrivateKey
+	pubKey      *ed25519.PublicKey
+	pubKeyBytes []byte
+	address     string
+}
+
+// new tor session
+func New() (*Onion, error) {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	keyPair, err := ed25519.GenerateKey(rnd)
+	if err != nil {
+		return nil, err
+	}
+	return NewFromPrivKey(keyPair.PrivateKey())
+}
+
+// new tor session from session file (priv key)
+func NewFromSession(filename string) (*Onion, error) {
+	path := filepath.Join(SESSION_DIR, filename)
+	bytes, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	privKey := ed25519.PrivateKey(bytes)
+	return NewFromPrivKey(privKey)
+}
+
+func NewFromPrivKey(privKeyBytes []byte) (*Onion, error) {
+	privKey := ed25519.PrivateKey(privKeyBytes)
+	pubKey := privKey.Public().(ed25519.PublicKey)
+	pubKeyBytes := []byte(pubKey)
+	address, err := pubKeyToAddress(pubKeyBytes)
+	if err != nil {
+		return nil, err
+	}
+	return &Onion{&privKey, &pubKey, pubKeyBytes, address}, nil
+}
+
+func (o *Onion) PubKey() []byte {
+	return o.pubKeyBytes
+}
+
+func (o *Onion) PrivateKey() []byte {
+	return o.keyPair.PrivateKey()
+}
+
+func (o *Onion) Address() string {
+	return o.address
+}
+
+// TODO: save as session ID not onion address
+func (o *Onion) Save() error {
 	// create session dir if not exists
 	err := os.MkdirAll(SESSION_DIR, 0700)
 	if err != nil {
 		return err
 	}
-	onion, err := PrivKeyBytesToOnionAddress(privKey)
-	if err != nil {
-		return err
-	}
-	path := filepath.Join(SESSION_DIR, fmt.Sprintf("%s.onion", onion))
+	path := filepath.Join(SESSION_DIR, fmt.Sprintf("%s.onion", o.address))
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	_, err = f.Write(privKey)
+	_, err = f.Write(o.keyPair.PrivateKey())
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func PrivKeyRead(onion string) ([]byte, error) {
-	path := filepath.Join(SESSION_DIR, fmt.Sprintf("%s.onion", onion))
-	return os.ReadFile(path)
-}
-
-func PrivKeyFileToOnionAddress(privKeyFile string) (string, error) {
-	keybytes, err := os.ReadFile(privKeyFile)
-	if err != nil {
-		return "", err
-	}
-	return PrivKeyBytesToOnionAddress(keybytes)
-}
-
-func PrivKeyBytesToOnionAddress(privKeyBytes []byte) (string, error) {
-	if len(privKeyBytes) != 64 {
-		return "", fmt.Errorf("invalid priv key bytes length: %d", len(privKeyBytes))
-	}
-	keyPair := ed25519.PrivateKey(privKeyBytes)
-	pubKeyBytes := keyPair.Public().(ed25519.PublicKey)
-	fmt.Printf("privKey hex: %x\n", privKeyBytes)
-	fmt.Printf("pubKey hex: %x\n", pubKeyBytes)
-	// get onion from public key
-	addr, err := PubKeyToOnionAddress(pubKeyBytes)
-	if err != nil {
-		return "", err
-	}
-	return addr, nil
-}
-
-func PubKeyToOnionAddress(pubKeyBytes []byte) (string, error) {
+func pubKeyToAddress(pubKeyBytes []byte) (string, error) {
 	pubKey := ed25519.PublicKey(pubKeyBytes)
 
 	// checksum = H(".onion checksum" || pubkey || version)

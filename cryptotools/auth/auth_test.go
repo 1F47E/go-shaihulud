@@ -3,36 +3,36 @@ package auth
 import (
 	"bytes"
 	myaes "go-dmtor/cryptotools/aes"
+	"go-dmtor/cryptotools/onion"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAuthEncryptDecrypt(t *testing.T) {
-	// Create a new AES crypter
-	crypter := &myaes.AEScrypter{}
+	t.Run("Encryption and Decryption", func(t *testing.T) {
+		// Create a new AES crypter
+		crypter := &myaes.AEScrypter{}
 
-	// Create a new Auth instance
-	a := New(crypter)
+		// Create onion instance
+		oni, err := onion.New()
+		assert.NoError(t, err)
 
-	// The plaintext we want to encrypt
-	plaintext := []byte("This is some test plaintext")
+		// Create a new Auth instance with empty onion
+		auth := New(crypter, oni)
 
-	// The password we're using to encrypt the plaintext
-	password := "ThisIsASecurePassword"
+		// The plaintext we want to encrypt
+		plaintext := []byte("This is some test plaintext")
 
-	// Attempt to encrypt the plaintext
-	ciphertext, err := a.Encrypt(plaintext, password)
-	if err != nil {
-		t.Fatalf("Error encrypting plaintext: %v", err)
-	}
+		// Attempt to encrypt the plaintext
+		ciphertext, err := auth.Encrypt(plaintext)
+		assert.NoError(t, err, "Error encrypting plaintext")
 
-	// Attempt to decrypt the ciphertext
-	decrypted, err := a.Decrypt(ciphertext, password)
-	if err != nil {
-		t.Fatalf("Error decrypting ciphertext: %v", err)
-	}
+		// Attempt to decrypt the ciphertext
+		decrypted, err := auth.Decrypt(ciphertext)
+		assert.NoError(t, err, "Error decrypting ciphertext")
 
-	// Check if the decrypted text matches the original plaintext
-	if !bytes.Equal(decrypted, plaintext) {
-		t.Fatalf("Decrypted text does not match original plaintext")
-	}
+		// Check if the decrypted text matches the original plaintext
+		assert.True(t, bytes.Equal(decrypted, plaintext), "Decrypted text does not match original plaintext")
+	})
 }
