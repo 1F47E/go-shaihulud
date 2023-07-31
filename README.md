@@ -45,6 +45,41 @@ User A then shares the access key (AES-encrypted onion address) and password wit
 The password and access key should be shared via different channels for security.
 
 User B enters the access key and then the password to decrypt the onion address.
+
+                                                                       
++----------------+                                                        +-------------+
+|     User A     |                                                        |    User B   |
+|    (Server)    |                                                        |   (Client)  |
++-------+--------+                                                        +--------+----+
+        |                                                                          |
+        |                                                                          |
+        |<------------>Connects to Tor Network                                     |
+        |                                                                          |
+        |--->Generates random password, encrypts onion address with password       |
+        |                                                                          |
+        |--->Generates access key (AES-encrypted onion address)                    |
+        |                                                                          |
+        |-------------------------- Shared Access Key ---------------------------->|
+        |                                                                          |
+        |-------------------- Shares password via Channel 2 ---------------------->|
+        |                                                                          |
+        |                                                                          |
+        |        Enters access key and password to decrypt onion address <---------|
+        |                                                                          |
+        |                            Decrypts the key with the password  <---------|
+        |                                                                          |
+        |                                        Connects to Tor Network <---------|
+        |                                                                          |
+        |                                             Connects to User A <---------|
+        |                                                                          |
+        |<------------------------- RSA pub key exchange ------------------------->|
+        |                                                                          |
+        |<---------- Users verify message integrity via HMAC signature ----------->|
+        |                                                                          |
++-------+--------+                                                        +--------+----+
+|     User A     |                                                        |    User B   |
+|    (Server)    |                                                        |   (Client)  |
++----------------+                                                        +-------------+
 ```
 
 
