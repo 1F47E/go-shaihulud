@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"go-dmtor/cryptotools/auth"
-	"go-dmtor/cryptotools/onion"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -14,19 +13,19 @@ func TestAESCrypter(t *testing.T) {
 	t.Run("Encryption and Decryption", func(t *testing.T) {
 		var myaes = new(AEScrypter)
 
-		oni, err := onion.New()
+		a, err := auth.New(myaes, "")
 		assert.NoError(t, err)
 
-		crypter := auth.New(myaes, oni)
+		// TODO: test with loading session from file
 
 		data := []byte("Hello World!")
 
 		// Encrypt a message
-		cipher, err := crypter.Encrypt(data)
+		cipher, err := a.Encrypt(data)
 		assert.NoError(t, err, "Encrypt error")
 
 		// Decrypt the message
-		plain, err := crypter.Decrypt(cipher)
+		plain, err := a.Decrypt(cipher)
 		assert.NoError(t, err, "Decrypt error")
 
 		// Test assert original and decoded

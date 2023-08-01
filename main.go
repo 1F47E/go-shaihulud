@@ -2,17 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"go-dmtor/client"
 	cfg "go-dmtor/config"
 	myaes "go-dmtor/cryptotools/aes"
 	"go-dmtor/cryptotools/auth"
-	"go-dmtor/cryptotools/onion"
 	myrsa "go-dmtor/cryptotools/rsa"
-	"go-dmtor/interfaces"
 	"go-dmtor/logger"
 	"go-dmtor/tor"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"golang.org/x/term"
@@ -52,11 +52,13 @@ func main() {
 			if err != nil {
 				log.Fatalf("server start error: %v\n", err)
 			}
+			go listenInput(ctx, cli)
 		case "cli":
 			err := cli.ServerConnect()
 			if err != nil {
 				log.Fatalf("server connect error: %v\n", err)
 			}
+			go listenInput(ctx, cli)
 		// test auth key decoding
 		case "key":
 			// get key as a param
@@ -73,20 +75,22 @@ func main() {
 				log.Fatalf("Error reading password: %v", err)
 			}
 
-			log.Debugf("password (%d): %s", len(password), password)
-			if len(password) != 9 {
-				log.Fatalf("password must be %d characters long\n", 9)
-			}
-
-			crypter := myaes.New()
-			ath, err := auth.NewFromKey(crypter, key, string(password))
+			aes := myaes.New()
+			ath, err := auth.NewFromKey(aes, key, string(password))
 			if err != nil {
+				if strings.Contains(err.Error(), "authentication failed") {
+					log.Fatal("wrong password")
+				}
 				log.Fatalf("cant create auth: %v\n", err)
 			}
-			log.Warnf("%s", ath)
-			// get onion address from the key
-			log.Infof("onion address: %s\n", ath.OnionAddress())
-			log.Info("SUCCESS")
+			// will block
+			err = tor.Connect(ctx, ath.OnionAddressFull())
+			if err != nil {
+				log.Fatalf("cant connect via tor to %s: %v\n", ath.OnionAddress(), err)
+			}
+			log.Infof("connected to %s\n", ath.OnionAddress())
+
+			// go listenInput(ctx)
 
 		// test tor connection, onion generator and auth
 		// TODO: move to client, start server
@@ -97,53 +101,29 @@ func main() {
 				session = args[2]
 			}
 
-			// load a session
-			// no session - generate new onion and save it
-			var onioner interfaces.Onioner
-			if session == "" {
-				log.Info("no session file provided, generating new session...")
-				o, err := onion.New()
-				if err != nil {
-					log.Fatalf("cant create onion: %v\n", err)
-				}
-				onioner = o
-				log.Infof("session created - %s\n", onioner.Session())
+			if session != "" {
+				log.Infof("loading session %s...\n", session)
 			} else {
-				// load onion from the session file
-				o, err := onion.NewFromSession(session)
-				if err != nil {
-					log.Fatalf("cant load session: %v\n", err)
-				}
-				onioner = o
-				log.Infof("session loaded - %s\n", onioner.Session())
+				log.Info("creating a new session...")
 			}
-			log.Debugf("onioner loaded: %v\n", onioner)
 
 			// create auth struct will password
 			// and give it to the user
-			// TODO: move after tor connection
 			crypter := myaes.New()
-			auth := auth.New(crypter, onioner)
-			log.Warnf("%s", auth)
-			// TODO: move to auth save?
-			err = onioner.Save()
+			auth, err := auth.New(crypter, session)
+			if err != nil {
+				log.Fatalf("cant create auth: %v\n", err)
+			}
+			fmt.Printf("%s", auth)
+			log.Debugf("onion: %s\n", auth.OnionAddress())
 
 			// start tor with the onion key
 			log.Info("Starting tor, please wait. It can take a few minutes...")
-			torconn, err := tor.Run(ctx, onioner)
+			torconn, err := tor.Run(ctx, auth.Onion())
 			if err != nil {
 				log.Fatalf("cant start tor: %v\n", err)
 			}
 			defer torconn.Close()
-			log.Infof("Session started - %s\n", onioner.Address())
-
-			// save session to a file if it was created
-			if session == "" {
-				err = onioner.Save()
-				if err != nil {
-					log.Fatalf("cant save session: %v\n", err)
-				}
-			}
 
 			// test connection
 			// listen to tor connection
@@ -176,27 +156,27 @@ func main() {
 
 	// block and wait for user input
 	// TODO: move to function. to not run if asking password
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				log.Warnf("context done: %v\n", ctx.Err())
-				return
-			default:
-				input := make([]byte, cfg.MSG_MAX_SIZE)
-				n, err := os.Stdin.Read(input)
-				if err != nil {
-					log.Fatalf("read error: %v\n", err)
-					return
-				}
-				input = input[:n]
-				err = cli.SendMessage(input)
-				if err != nil {
-					log.Errorf("can't send a message: %v\n", err)
-				}
-			}
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case <-ctx.Done():
+	// 			log.Warnf("context done: %v\n", ctx.Err())
+	// 			return
+	// 		default:
+	// 			input := make([]byte, cfg.MSG_MAX_SIZE)
+	// 			n, err := os.Stdin.Read(input)
+	// 			if err != nil {
+	// 				log.Fatalf("read error: %v\n", err)
+	// 				return
+	// 			}
+	// 			input = input[:n]
+	// 			err = cli.SendMessage(input)
+	// 			if err != nil {
+	// 				log.Errorf("can't send a message: %v\n", err)
+	// 			}
+	// 		}
+	// 	}
+	// }()
 
 	// graceful shutdown
 	go func() {
@@ -208,4 +188,27 @@ func main() {
 
 	<-ctx.Done()
 	log.Warn("Bye!")
+}
+
+func listenInput(ctx context.Context, cli *client.Client) {
+	for {
+		select {
+		case <-ctx.Done():
+			log.Warnf("context done: %v\n", ctx.Err())
+			return
+		default:
+			input := make([]byte, cfg.MSG_MAX_SIZE)
+			n, err := os.Stdin.Read(input)
+			if err != nil {
+				log.Fatalf("read error: %v\n", err)
+				return
+			}
+			input = input[:n]
+			err = cli.SendMessage(input)
+			if err != nil {
+				log.Errorf("can't send a message: %v\n", err)
+			}
+		}
+	}
+
 }

@@ -86,7 +86,7 @@ User B enters the access key and then the password to decrypt the onion address.
 # TODO
 - [ ] add timestamps to the messages to prevent replay attacks
 - [ ] sign every message with hmac to verify integrity and prevent MITM attacks
-- [ ] do onion routing
+- [x] onion routing
 - [x] gen chat key for access, hide onion
 - [ ] cli on start generate key with password
 - [ ] ack on handshake received

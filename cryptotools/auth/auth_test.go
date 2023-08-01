@@ -3,25 +3,25 @@ package auth
 import (
 	"bytes"
 	myaes "go-dmtor/cryptotools/aes"
-	"go-dmtor/cryptotools/onion"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+// func TestPasswordGen(t *testing.T) {
+// 	// example password
+// 	// 3688-7BE9
+// 	// TODO: test password gen
+// }
+
 func TestAuthEncryptDecrypt(t *testing.T) {
-	t.Run("Encryption and Decryption", func(t *testing.T) {
+	t.Run("Encryption and Decryption Gen pass", func(t *testing.T) {
 		// Create a new AES crypter
 		crypter := &myaes.AEScrypter{}
 
-		// Create onion instance
-		oni, err := onion.New()
-		assert.NoError(t, err)
+		auth, err := New(crypter, "")
+		assert.NoError(t, err, "Error creating new Auth instance")
 
-		// Create a new Auth instance with empty onion
-		auth := New(crypter, oni)
-
-		// The plaintext we want to encrypt
 		plaintext := []byte("This is some test plaintext")
 
 		// Attempt to encrypt the plaintext
@@ -35,4 +35,14 @@ func TestAuthEncryptDecrypt(t *testing.T) {
 		// Check if the decrypted text matches the original plaintext
 		assert.True(t, bytes.Equal(decrypted, plaintext), "Decrypted text does not match original plaintext")
 	})
+}
+
+func TestOnionFromKey(t *testing.T) {
+	key := "AF3EAFDE09FBA80741034641180F13E029B056BC5F7440598EAC2EBFFE894D6C51D5263782D957FC95A856E1469159BFC97228448D2BF5F2DC896CE25758EF742235A7CEA5032C3F0B0B8A78EB8B08BA7D036E436F563078E660ED46"
+	password := "F2A6-D23A"
+	expected_onion := "nachzaurfkn742gnigmm6aqkjqubmojwykvcuenzt53423e775vcinid"
+	crypter := myaes.New()
+	auth, err := NewFromKey(crypter, key, password)
+	assert.NoError(t, err, "Error creating new Auth instance")
+	assert.Equal(t, auth.OnionAddress(), expected_onion)
 }

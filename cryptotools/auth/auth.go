@@ -22,11 +22,20 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"go-dmtor/config"
 	"go-dmtor/cryptotools/onion"
 	"go-dmtor/interfaces"
-	"log"
+	mrand "math/rand"
+	"os"
+	"path/filepath"
 	"strings"
 )
+
+var SESSION_DIR = config.SESSION_DIR
+
+// NOTE:
+// for the access key we encode onion pub key (32 bytes) to hex format
+// for our session file we encode onion priv key without encryption
 
 // TODO:
 // on server startup
@@ -49,61 +58,150 @@ type Auth struct {
 	onion     interfaces.Onioner
 }
 
-func New(crypter interfaces.Symmetric, onion interfaces.Onioner) *Auth {
+func New(crypter interfaces.Symmetric, session string) (*Auth, error) {
+	var err error
 	password := generatePassword()
-	accessKey := Encode(onion.PubKey())
 
-	return &Auth{
+	// create or load onion key
+	var onioner interfaces.Onioner
+	if session == "" {
+		// create new onion
+		o, err := onion.New()
+		if err != nil {
+			return nil, err
+		}
+		onioner = o
+	} else {
+		// load onion from the session file
+		o, err := onion.NewFromSession(session)
+		if err != nil {
+			return nil, err
+		}
+		onioner = o
+	}
+
+	// encrypt onion pub key for the user B
+	onionPubKeyCipher, err := crypter.Encrypt(onioner.PubKey(), password)
+	if err != nil {
+		return nil, err
+	}
+
+	// encode priv key cipher to access key ABCD-1234-...
+	accessKey := Encode(onionPubKeyCipher)
+
+	a := Auth{
 		crypter:   crypter,
-		onion:     onion,
+		onion:     onioner,
 		password:  password,
 		accessKey: accessKey,
 	}
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
 }
 
 func NewFromKey(crypter interfaces.Symmetric, accessKey, password string) (*Auth, error) {
-	// TODO: test
-	keyBytes, err := Decode(accessKey)
+	// decode string key to bytes
+	keyBytesCipher, err := Decode(accessKey)
 	if err != nil {
 		return nil, err
 	}
-	onion, err := onion.NewFromPrivKey(keyBytes)
+	// decrypt key bytes with password
+	keyBytes, err := crypter.Decrypt(keyBytesCipher, password)
 	if err != nil {
 		return nil, err
 	}
-	return &Auth{
+
+	// version of onion without priv key, only pub key to connect to
+	onion, err := onion.NewFromPubKey(keyBytes)
+	if err != nil {
+		return nil, err
+	}
+	a := Auth{
 		crypter:   crypter,
 		accessKey: accessKey,
 		password:  password,
 		onion:     onion,
-	}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
 }
 
-func (ac *Auth) Encrypt(plaintext []byte) ([]byte, error) {
-	return ac.crypter.Encrypt(plaintext, ac.password)
-}
-func (ac *Auth) Decrypt(ciphertext []byte) ([]byte, error) {
-	return ac.crypter.Decrypt(ciphertext, ac.password)
+func (a *Auth) Encrypt(data []byte) ([]byte, error) {
+	return a.crypter.Encrypt(data, a.password)
 }
 
-func (ac *Auth) String() string {
-	return fmt.Sprintf("=====\nAccess key: %s\nPassword: %s\n=====", ac.accessKey, ac.password)
+func (a *Auth) Decrypt(ciphertext []byte) ([]byte, error) {
+	return a.crypter.Decrypt(ciphertext, a.password)
 }
 
-func (ac *Auth) OnionAddress() string {
-	return ac.onion.Address()
+// for testing
+func (a *Auth) EncryptWithPassword(data []byte, password string) ([]byte, error) {
+	return a.crypter.Encrypt(data, password)
+}
+
+// for testing
+func (a *Auth) DecryptWithPassword(ciphertext []byte, password string) ([]byte, error) {
+	return a.crypter.Decrypt(ciphertext, password)
+}
+
+func (a *Auth) OnionAddress() string {
+	return a.onion.Address()
+}
+
+func (a *Auth) OnionAddressFull() string {
+	return fmt.Sprintf("%s.onion:80", a.onion.Address())
+}
+
+func (a *Auth) Onion() interfaces.Onioner {
+	return a.onion
+}
+
+func (a *Auth) String() string {
+	return fmt.Sprintf("=====\nAccess key:\n%s\nPassword: %s\n=====", a.accessKey, a.password)
+}
+
+// save to a session file
+func (a *Auth) Save() error {
+
+	data := a.onion.PrivKey()
+	if len(data) == 0 {
+		return fmt.Errorf("no data to save")
+	}
+
+	// create session dir if not exists
+	err := os.MkdirAll(SESSION_DIR, 0700)
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(SESSION_DIR, a.accessKey)
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // ETC
 // len is 9 bytes
 // TODO: make a test
+// format is AB3D-E2FA
 func generatePassword() string {
-	// format is AB3D-E2FA
 	b := make([]byte, 4)
 	_, err := rand.Read(b)
 	if err != nil {
 		// crypto/rand error. Highly unlikely.
-		log.Fatalf("error reading random bytes: %v", err)
+		// fall back to math/rand that always works
+		r := mrand.Uint32()
+		b = []byte(fmt.Sprintf("%x", r))
 	}
 	pin := fmt.Sprintf("%x", b)
 	pin = strings.ToUpper(pin)
@@ -120,20 +218,19 @@ func generatePassword() string {
 // encrypt onion pub key to hex format
 // example of access key format: AB3D-E2FA-...
 func Encode(pubKey []byte) string {
-	// encode to HEX
 	hex := fmt.Sprintf("%x", pubKey)
 	hex = strings.ToUpper(hex)
-	// split to 4 byte parts
-	parts := make([]string, 0)
-	for i := 0; i < len(hex); i += 4 {
-		parts = append(parts, hex[i:i+4])
-	}
-	return strings.Join(parts, "-")
+	return hex
+	// parts := make([]string, 0)
+	// for i := 0; i < len(hex); i += 4 {
+	// 	parts = append(parts, hex[i:i+4])
+	// }
+	// return strings.Join(parts, "-")
 }
 
 // decode from custom hex format to bytes
 func Decode(key string) ([]byte, error) {
-	bHex := strings.ReplaceAll(key, "-", "")
-	bHex = strings.ToLower(bHex)
-	return hex.DecodeString(bHex)
+	// bHex := strings.ReplaceAll(key, "-", "")
+	key = strings.ToLower(key)
+	return hex.DecodeString(key)
 }
