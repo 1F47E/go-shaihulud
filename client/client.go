@@ -1,3 +1,4 @@
+// TODO: refactor this shit, add tests
 package client
 
 import (
@@ -6,13 +7,18 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"time"
 
 	"go-dmtor/client/connection"
 	"go-dmtor/client/message"
 	cfg "go-dmtor/config"
+	"go-dmtor/interfaces"
 	is "go-dmtor/interfaces"
 	"go-dmtor/logger"
+
+	"github.com/cretz/bine/tor"
+	"github.com/cretz/bine/torutil/ed25519"
 )
 
 var log = logger.New()
@@ -42,7 +48,105 @@ func (c *Client) disconnect() {
 	}
 }
 
-func (c *Client) ServerStart() error {
+// TorConnectAsClient
+func (c *Client) TorConnectAsClient(ctx context.Context, addr string) error {
+	// Start tor with default config (can set start conf's DebugWriter to os.Stdout for debug logs)
+	log.Info("Starting tor...")
+	t, err := tor.Start(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer t.Close()
+	// Wait at most a minute to start network and get
+	dialCtx, dialCancel := context.WithTimeout(context.Background(), time.Minute)
+	defer dialCancel()
+
+	// custom tor dialer
+	dialer, err := t.Dialer(dialCtx, nil)
+	if err != nil {
+		return err
+	}
+	log.Infof("Connecting to %s\n", addr)
+	conn, err := dialer.Dial("tcp", addr)
+	if err != nil {
+		return err
+	}
+	log.Info("Connected")
+
+	c.conn = connection.New(conn)
+	ctx, cancel := context.WithCancel(c.ctx)
+	go c.sender(ctx, cancel)
+	go c.listner(ctx, cancel)
+	go c.listenInput()
+	<-ctx.Done()
+
+	return nil
+}
+
+func (c *Client) TorConnectAsServer(onion interfaces.Onioner) error {
+	defer func() {
+		log.Warnf("TorConnect exit\n")
+	}()
+
+	// starting tor server and create onion
+	// torconn, err := tor.Run(c.ctx, onion)
+	t, err := tor.Start(c.ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	keyBytes := onion.PrivKey()
+	keyPair := ed25519.PrivateKey(keyBytes)
+
+	torconn, err := t.Listen(c.ctx, &tor.ListenConf{Key: keyPair, LocalPort: 3000, RemotePorts: []int{80}})
+	if err != nil {
+		return err
+	}
+
+	if err != nil {
+		log.Fatalf("cant start tor: %v\n", err)
+	}
+	defer torconn.Close()
+
+	// run listener accept in a sep G to allow shutdown
+	for {
+		select {
+		case <-c.ctx.Done():
+			return c.ctx.Err()
+
+		default:
+			log.Info("Waiting for connection...")
+			// block
+			conn, err := torconn.Accept()
+			if err != nil {
+				log.Errorf("accept error: %v\n", err)
+			}
+			ip := conn.RemoteAddr().String()
+			log.Debugf("Connection open for %s\n", ip)
+
+			if c.conn != nil && c.conn.Name != "" {
+				log.Warnf("<%s> reconnected\n", c.conn.Name)
+				c.conn.Conn = conn
+			} else {
+				c.conn = connection.New(conn)
+				log.Warn("Connecting...\n")
+				log.Debugf("Connection uuid is [%s]\n", c.conn.UUID)
+			}
+
+			// custom ctx to cancel both listner and sender
+			ctx, cancel := context.WithCancel(c.ctx)
+			go c.listner(ctx, cancel)
+			go c.sender(ctx, cancel)
+			go c.listenInput()
+			log.Debugf("ServerStart: blocing, working with connection")
+			<-ctx.Done()
+			// Block here untill we have a connection
+		}
+	}
+}
+
+// local chat over tcp for debug only
+func (c *Client) ServerStartLocal() error {
 	defer func() {
 		log.Warnf("ServerStart exit\n")
 	}()
@@ -95,7 +199,7 @@ func (c *Client) ServerStart() error {
 	}
 }
 
-func (c *Client) ServerConnect() error {
+func (c *Client) ServerConnectLocal() error {
 	defer func() {
 		log.Warnf("ServerConnect exit\n")
 	}()
@@ -127,6 +231,7 @@ func (c *Client) ServerConnect() error {
 			ctx, cancel := context.WithCancel(c.ctx)
 			go c.sender(ctx, cancel)
 			go c.listner(ctx, cancel)
+			go c.listenInput()
 			<-ctx.Done()
 		}
 	}
@@ -142,6 +247,7 @@ func (c *Client) SendMessage(msg []byte) error {
 	return nil
 }
 
+// TODO: move to pkg
 func (c *Client) sender(ctx context.Context, cancel context.CancelFunc) {
 	defer func() {
 		log.Info("Sender: Closing connection")
@@ -257,6 +363,28 @@ func (c *Client) listner(ctx context.Context, cancel context.CancelFunc) {
 				}
 			}
 			// TODO: send ack
+		}
+	}
+}
+
+func (c *Client) listenInput() {
+	for {
+		select {
+		case <-c.ctx.Done():
+			log.Warnf("context done: %v\n", c.ctx.Err())
+			return
+		default:
+			input := make([]byte, cfg.MSG_MAX_SIZE)
+			n, err := os.Stdin.Read(input)
+			if err != nil {
+				log.Fatalf("read error: %v\n", err)
+				return
+			}
+			input = input[:n]
+			err = c.SendMessage(input)
+			if err != nil {
+				log.Errorf("can't send a message: %v\n", err)
+			}
 		}
 	}
 }

@@ -9,11 +9,9 @@ import (
 	"go-dmtor/cryptotools/auth"
 	myrsa "go-dmtor/cryptotools/rsa"
 	"go-dmtor/logger"
-	"go-dmtor/tor"
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 
 	"golang.org/x/term"
 )
@@ -46,19 +44,17 @@ func main() {
 	// or select a previous session from a list
 	go func() {
 		switch arg {
-		case "srv":
+		case "localsrv":
 			// TODO: refactor to work with custom tor connection
-			err := cli.ServerStart()
+			err := cli.ServerStartLocal()
 			if err != nil {
 				log.Fatalf("server start error: %v\n", err)
 			}
-			go listenInput(ctx, cli)
-		case "cli":
-			err := cli.ServerConnect()
+		case "localcli":
+			err := cli.ServerConnectLocal()
 			if err != nil {
 				log.Fatalf("server connect error: %v\n", err)
 			}
-			go listenInput(ctx, cli)
 		// test auth key decoding
 		case "key":
 			// get key as a param
@@ -83,8 +79,9 @@ func main() {
 				}
 				log.Fatalf("cant create auth: %v\n", err)
 			}
+			err = cli.TorConnectAsClient(ctx, ath.OnionAddressFull())
 			// will block
-			err = tor.Connect(ctx, ath.OnionAddressFull())
+			// err = tor.Connect(ctx, ath.OnionAddressFull())
 			if err != nil {
 				log.Fatalf("cant connect via tor to %s: %v\n", ath.OnionAddress(), err)
 			}
@@ -119,26 +116,25 @@ func main() {
 
 			// start tor with the onion key
 			log.Info("Starting tor, please wait. It can take a few minutes...")
-			torconn, err := tor.Run(ctx, auth.Onion())
-			if err != nil {
-				log.Fatalf("cant start tor: %v\n", err)
-			}
-			defer torconn.Close()
 
+			err = cli.TorConnectAsServer(auth.Onion())
+			if err != nil {
+				log.Fatalf("connection reading error: %v\n", err)
+			}
 			// test connection
 			// listen to tor connection
-			for {
-				log.Debug("Waiting for new connection")
-				conn, err := torconn.Accept()
-				if err != nil {
-					log.Fatal(err)
-				}
-				log.Debug("Got new connection")
-				ip := conn.RemoteAddr().String()
-				// connID := crypto.Hash([]byte(ip))
-				log.Debugf("Connection open for %s\n", ip)
-				time.Sleep(1 * time.Hour)
-			}
+			// for {
+			// 	log.Debug("Waiting for new connection")
+			// 	conn, err := torconn.Accept()
+			// 	if err != nil {
+			// 		log.Fatal(err)
+			// 	}
+			// 	log.Debug("Got new connection")
+			// 	ip := conn.RemoteAddr().String()
+			// 	// connID := crypto.Hash([]byte(ip))
+			// 	log.Debugf("Connection open for %s\n", ip)
+			// 	time.Sleep(1 * time.Hour)
+			// }
 		default:
 			log.Fatalf(usage, args[0])
 		}
@@ -188,27 +184,4 @@ func main() {
 
 	<-ctx.Done()
 	log.Warn("Bye!")
-}
-
-func listenInput(ctx context.Context, cli *client.Client) {
-	for {
-		select {
-		case <-ctx.Done():
-			log.Warnf("context done: %v\n", ctx.Err())
-			return
-		default:
-			input := make([]byte, cfg.MSG_MAX_SIZE)
-			n, err := os.Stdin.Read(input)
-			if err != nil {
-				log.Fatalf("read error: %v\n", err)
-				return
-			}
-			input = input[:n]
-			err = cli.SendMessage(input)
-			if err != nil {
-				log.Errorf("can't send a message: %v\n", err)
-			}
-		}
-	}
-
 }
