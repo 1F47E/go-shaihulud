@@ -14,7 +14,7 @@ With keys exchange and RSA encryption
 
 # Connection flow
 ```
-Client A starts the chat server
+Client A starts the tor server, generates access key, which is onion address encrypted with a password
 Client A shares the access key and password with Client B
 Client B enters the access key and password to decrypt the onion address
 Client B connects to the onion address
@@ -84,19 +84,21 @@ User B enters the access key and then the password to decrypt the onion address.
 
 
 # TODO
+- [ ] graceful shutdown
+- [ ] allow reconnect, do not closed connection 
+- [ ] encode access as BEP39 mnemonic
 - [ ] add timestamps to the messages to prevent replay attacks
 - [ ] sign every message with hmac to verify integrity and prevent MITM attacks
-- [ ] graceful shutdown
-- [x] onion routing
-- [x] gen chat key for access, hide onion
-- [x] server generate key with password
-- [x] client enters key and password to connect
 - [ ] ack on handshake received
 - [ ] ack on every message
 - [ ] chat gui
 - [ ] send files
 - [ ] allow multiple users in a chat room
 - [ ] test coverage for all packages
+- [x] onion routing
+- [x] gen chat key for access, hide onion
+- [x] server generate key with password
+- [x] client enters key and password to connect
 - [x] test coverage for crypto packages
 - [x] basic tcp echo server
 - [x] basic chat server-client

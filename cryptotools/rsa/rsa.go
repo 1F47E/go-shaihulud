@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
-	"log"
 )
 
 // MSG RSA encryption
@@ -34,6 +33,7 @@ func New() (*RsaCrypter, error) {
 	return &RsaCrypter{privKey: privKey, pubKey: pubKey}, nil
 }
 
+// encrypt our message with user B public key
 func (r *RsaCrypter) Encrypt(data []byte, pubKeyBytes []byte) ([]byte, error) {
 	pubKey, err := x509.ParsePKCS1PublicKey(pubKeyBytes)
 	if err != nil {
@@ -53,7 +53,7 @@ func (r *RsaCrypter) Decrypt(data []byte) ([]byte, error) {
 	hash := sha256.New()
 	plaintext, err := rsa.DecryptOAEP(hash, rand.Reader, r.privKey, data, label)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	return plaintext, nil
 }

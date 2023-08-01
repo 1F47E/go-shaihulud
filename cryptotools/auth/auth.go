@@ -61,9 +61,16 @@ type Auth struct {
 func New(crypter interfaces.Symmetric, session string) (*Auth, error) {
 	var err error
 	password := generatePassword()
+	accessKey := ""
+	var onioner interfaces.Onioner
+
+	// if isDebug {
+	// 	// encode local address
+	// 	localAddr := "localhost:3000"
+	// 	accessKey = Encode([]byte(localAddr))
+	// } else {
 
 	// create or load onion key
-	var onioner interfaces.Onioner
 	if session == "" {
 		// create new onion
 		o, err := onion.New()
@@ -86,8 +93,8 @@ func New(crypter interfaces.Symmetric, session string) (*Auth, error) {
 		return nil, err
 	}
 
-	// encode priv key cipher to access key ABCD-1234-...
-	accessKey := Encode(onionPubKeyCipher)
+	accessKey = Encode(onionPubKeyCipher)
+	// }
 
 	a := Auth{
 		crypter:   crypter,
@@ -158,6 +165,14 @@ func (a *Auth) OnionAddressFull() string {
 
 func (a *Auth) Onion() interfaces.Onioner {
 	return a.onion
+}
+
+func (a *Auth) AccessKey() string {
+	return a.accessKey
+}
+
+func (a *Auth) Password() string {
+	return a.password
 }
 
 func (a *Auth) String() string {

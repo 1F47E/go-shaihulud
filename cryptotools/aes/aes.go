@@ -100,8 +100,6 @@ func (a *AEScrypter) Decrypt(data []byte, password string) ([]byte, error) {
 	}
 	// extract our nonce from our encrypted text
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	fmt.Printf("nonce len: %d\n", len(nonce))
-	fmt.Printf("ciphertext len: %d\n", len(ciphertext))
 
 	plain, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {

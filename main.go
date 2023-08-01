@@ -2,30 +2,25 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"go-dmtor/client"
-	cfg "go-dmtor/config"
-	myaes "go-dmtor/cryptotools/aes"
-	"go-dmtor/cryptotools/auth"
 	myrsa "go-dmtor/cryptotools/rsa"
 	"go-dmtor/logger"
 	"os"
 	"os/signal"
-	"strings"
 
 	"golang.org/x/term"
 )
 
 var log = logger.New()
 
-var usage = "Usage: %s <srv|cli>\n"
+var usage = "Usage: <srv|cli>\n"
 
 func main() {
 
 	// get input args
 	args := os.Args
 	if len(args) == 1 {
-		log.Fatalf(usage, args[0])
+		log.Fatal(usage)
 	}
 	arg := args[1]
 
@@ -38,105 +33,126 @@ func main() {
 	}
 
 	// start the server or connect
-	cli := client.NewClient(ctx, cancel, cfg.ADDR, crypter)
+	var connType client.ConnectionType
+	if os.Getenv("TOR") == "0" {
+		connType = client.Local
+	} else {
+		connType = client.Tor
+	}
+	cli := client.NewClient(ctx, cancel, connType, crypter)
 
 	// TODO: add new session command and connect to old session.
 	// or select a previous session from a list
 	go func() {
 		switch arg {
-		case "localsrv":
+		case "srv":
 			// TODO: refactor to work with custom tor connection
-			err := cli.ServerStartLocal()
+			session := ""
+			err := cli.RunServer(session)
 			if err != nil {
 				log.Fatalf("server start error: %v\n", err)
 			}
-		case "localcli":
-			err := cli.ServerConnectLocal()
-			if err != nil {
-				log.Fatalf("server connect error: %v\n", err)
-			}
-		// test auth key decoding
-		case "key":
+		case "cli":
+			// TODO: allow bypass auth for dev
 			// get key as a param
 			if len(args) != 3 {
 				log.Fatalf("Usage: %s key <key>\n", args[0])
 			}
 			key := args[2]
+			// TODO: validate key
 
-			// ask for password from user input
 			log.Info("Enter password:")
-
 			password, err := term.ReadPassword(int(os.Stdin.Fd()))
 			if err != nil {
 				log.Fatalf("Error reading password: %v", err)
 			}
 
-			aes := myaes.New()
-			ath, err := auth.NewFromKey(aes, key, string(password))
+			err = cli.RunClient(key, string(password))
 			if err != nil {
-				if strings.Contains(err.Error(), "authentication failed") {
-					log.Fatal("wrong password")
-				}
-				log.Fatalf("cant create auth: %v\n", err)
+				log.Fatalf("server connect error: %v\n", err)
 			}
-			err = cli.TorConnectAsClient(ctx, ath.OnionAddressFull())
-			// will block
-			// err = tor.Connect(ctx, ath.OnionAddressFull())
-			if err != nil {
-				log.Fatalf("cant connect via tor to %s: %v\n", ath.OnionAddress(), err)
-			}
-			log.Infof("connected to %s\n", ath.OnionAddress())
+		// // test auth key decoding
+		// case "key":
+		// 	// get key as a param
+		// 	if len(args) != 3 {
+		// 		log.Fatalf("Usage: %s key <key>\n", args[0])
+		// 	}
+		// 	key := args[2]
 
-			// go listenInput(ctx)
+		// 	// ask for password from user input
+		// 	log.Info("Enter password:")
 
-		// test tor connection, onion generator and auth
-		// TODO: move to client, start server
-		case "tor":
-			// check session param
-			session := ""
-			if len(args) == 3 {
-				session = args[2]
-			}
+		// 	password, err := term.ReadPassword(int(os.Stdin.Fd()))
+		// 	if err != nil {
+		// 		log.Fatalf("Error reading password: %v", err)
+		// 	}
 
-			if session != "" {
-				log.Infof("loading session %s...\n", session)
-			} else {
-				log.Info("creating a new session...")
-			}
+		// 	aes := myaes.New()
+		// 	ath, err := auth.NewFromKey(aes, key, string(password))
+		// 	if err != nil {
+		// 		if strings.Contains(err.Error(), "authentication failed") {
+		// 			log.Fatal("wrong password")
+		// 		}
+		// 		log.Fatalf("cant create auth: %v\n", err)
+		// 	}
+		// 	err = cli.TorConnectAsClient(ctx, ath.OnionAddressFull())
+		// 	// will block
+		// 	// err = tor.Connect(ctx, ath.OnionAddressFull())
+		// 	if err != nil {
+		// 		log.Fatalf("cant connect via tor to %s: %v\n", ath.OnionAddress(), err)
+		// 	}
+		// 	log.Infof("connected to %s\n", ath.OnionAddress())
 
-			// create auth struct will password
-			// and give it to the user
-			crypter := myaes.New()
-			auth, err := auth.New(crypter, session)
-			if err != nil {
-				log.Fatalf("cant create auth: %v\n", err)
-			}
-			fmt.Printf("%s", auth)
-			log.Debugf("onion: %s\n", auth.OnionAddress())
+		// 	// go listenInput(ctx)
 
-			// start tor with the onion key
-			log.Info("Starting tor, please wait. It can take a few minutes...")
+		// // test tor connection, onion generator and auth
+		// // TODO: move to client, start server
+		// case "tor":
+		// 	// check session param
+		// 	session := ""
+		// 	if len(args) == 3 {
+		// 		session = args[2]
+		// 	}
 
-			err = cli.TorConnectAsServer(auth.Onion())
-			if err != nil {
-				log.Fatalf("connection reading error: %v\n", err)
-			}
-			// test connection
-			// listen to tor connection
-			// for {
-			// 	log.Debug("Waiting for new connection")
-			// 	conn, err := torconn.Accept()
-			// 	if err != nil {
-			// 		log.Fatal(err)
-			// 	}
-			// 	log.Debug("Got new connection")
-			// 	ip := conn.RemoteAddr().String()
-			// 	// connID := crypto.Hash([]byte(ip))
-			// 	log.Debugf("Connection open for %s\n", ip)
-			// 	time.Sleep(1 * time.Hour)
-			// }
+		// 	if session != "" {
+		// 		log.Infof("loading session %s...\n", session)
+		// 	} else {
+		// 		log.Info("creating a new session...")
+		// 	}
+
+		// 	// create auth struct will password
+		// 	// and give it to the user
+		// 	crypter := myaes.New()
+		// 	auth, err := auth.New(crypter, session)
+		// 	if err != nil {
+		// 		log.Fatalf("cant create auth: %v\n", err)
+		// 	}
+		// 	fmt.Printf("%s", auth)
+		// 	log.Debugf("onion: %s\n", auth.OnionAddress())
+
+		// 	// start tor with the onion key
+		// 	log.Info("Starting tor, please wait. It can take a few minutes...")
+
+		// 	err = cli.TorConnectAsServer(auth.Onion())
+		// 	if err != nil {
+		// 		log.Fatalf("connection reading error: %v\n", err)
+		// 	}
+		// 	// test connection
+		// 	// listen to tor connection
+		// 	// for {
+		// 	// 	log.Debug("Waiting for new connection")
+		// 	// 	conn, err := torconn.Accept()
+		// 	// 	if err != nil {
+		// 	// 		log.Fatal(err)
+		// 	// 	}
+		// 	// 	log.Debug("Got new connection")
+		// 	// 	ip := conn.RemoteAddr().String()
+		// 	// 	// connID := crypto.Hash([]byte(ip))
+		// 	// 	log.Debugf("Connection open for %s\n", ip)
+		// 	// 	time.Sleep(1 * time.Hour)
+		// 	// }
 		default:
-			log.Fatalf(usage, args[0])
+			log.Fatal(usage)
 		}
 	}()
 
