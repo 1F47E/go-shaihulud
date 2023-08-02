@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"go-dmtor/client"
-	myrsa "go-dmtor/cryptotools/rsa"
-	"go-dmtor/logger"
+	"go-dmtor/pkg/client"
+	myrsa "go-dmtor/pkg/cryptotools/rsa"
+	"go-dmtor/pkg/logger"
 	"os"
 	"os/signal"
 

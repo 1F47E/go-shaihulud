@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
-	"go-dmtor/logger"
+	"go-dmtor/pkg/logger"
 	mrand "math/rand"
 )
 

@@ -84,6 +84,7 @@ User B enters the access key and then the password to decrypt the onion address.
 
 
 # TODO
+- [ ] restore last session
 - [ ] graceful shutdown
 - [ ] allow reconnect, do not closed connection 
 - [ ] encode access as BEP39 mnemonic

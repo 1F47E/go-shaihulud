@@ -3,7 +3,7 @@ package localclient
 import (
 	"context"
 	"fmt"
-	"go-dmtor/client/message"
+	"go-dmtor/pkg/client/message"
 	"net"
 )
 

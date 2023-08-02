@@ -3,7 +3,7 @@ package myrsa
 import (
 	"testing"
 
-	msgcrypter "go-dmtor/cryptotools/message_crypter"
+	msgcrypter "go-dmtor/pkg/cryptotools/message_crypter"
 
 	"github.com/stretchr/testify/require"
 )

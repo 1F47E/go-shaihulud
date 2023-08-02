@@ -6,16 +6,16 @@ import (
 	"os"
 	"strings"
 
-	"go-dmtor/client/connection"
-	"go-dmtor/client/listner"
-	"go-dmtor/client/localclient"
-	"go-dmtor/client/message"
-	"go-dmtor/client/torclient"
-	cfg "go-dmtor/config"
-	myaes "go-dmtor/cryptotools/aes"
-	"go-dmtor/cryptotools/auth"
-	"go-dmtor/interfaces"
-	"go-dmtor/logger"
+	"go-dmtor/pkg/client/connection"
+	"go-dmtor/pkg/client/listner"
+	"go-dmtor/pkg/client/localclient"
+	"go-dmtor/pkg/client/message"
+	"go-dmtor/pkg/client/torclient"
+	cfg "go-dmtor/pkg/config"
+	myaes "go-dmtor/pkg/cryptotools/aes"
+	"go-dmtor/pkg/cryptotools/auth"
+	"go-dmtor/pkg/interfaces"
+	"go-dmtor/pkg/logger"
 )
 
 var log = logger.New()

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"go-dmtor/cryptotools/auth"
+	"go-dmtor/pkg/cryptotools/auth"
 
 	"github.com/stretchr/testify/assert"
 )

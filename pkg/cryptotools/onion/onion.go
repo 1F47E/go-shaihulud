@@ -3,7 +3,7 @@ package onion
 import (
 	"bytes"
 	"encoding/base32"
-	"go-dmtor/config"
+	"go-dmtor/pkg/config"
 	"os"
 	"path/filepath"
 	"strings"

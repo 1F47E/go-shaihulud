@@ -3,11 +3,11 @@ package torclient
 import (
 	"context"
 	"fmt"
-	"go-dmtor/client/message"
+	"go-dmtor/pkg/client/message"
 	"net"
 	"time"
 
-	"go-dmtor/logger"
+	"go-dmtor/pkg/logger"
 
 	"github.com/cretz/bine/tor"
 	"github.com/cretz/bine/torutil/ed25519"
