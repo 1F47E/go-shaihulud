@@ -18,9 +18,11 @@ var app = tview.NewApplication()
 
 // Starting point for the presentation.
 func Draw() {
+
 	// The presentation slides.
 	slides := []Slide{
-		Form,
+		// Form,
+		Auth,
 		Chat,
 	}
 
@@ -61,6 +63,7 @@ func Draw() {
 		SetDirection(tview.FlexRow).
 		AddItem(pages, 0, 1, true).
 		AddItem(info, 1, 1, false)
+	fmt.Println("layout", layout)
 
 	// Shortcuts to navigate the slides.
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -75,7 +78,7 @@ func Draw() {
 	})
 
 	// Start the application.
-	if err := app.SetRoot(layout, true).EnableMouse(true).Run(); err != nil {
+	if err := app.SetRoot(pages, true).EnableMouse(true).Run(); err != nil {
 		panic(err)
 	}
 }

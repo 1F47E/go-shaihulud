@@ -3,6 +3,7 @@ package gui
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"image/jpeg"
 
 	"github.com/gdamore/tcell/v2"
@@ -10,6 +11,27 @@ import (
 )
 
 func Form(nextSlide func()) (title string, content tview.Primitive) {
+	form := tview.NewForm().
+		AddTextArea("ACCESS KEY:", "", 0, 6, 0, nil).
+		AddPasswordField("PASSWORD", "", 10, '*', nil).
+		AddButton("Connect", func() {
+			fmt.Println("Connect")
+		})
+
+	// chatBox := tview.NewBox().
+	// 	SetTitle("Chat window").
+	// 	SetBorder(true).
+	// 	SetBorderAttributes(tcell.AttrDim)
+	width := 50
+	height := 31
+	chatWIndowFlex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		// AddItem(form, 0, 6, true)
+		AddItem(Center(width, height, form), 0, 1, true)
+	return "form", chatWIndowFlex
+}
+
+func Auth(nextSlide func()) (title string, content tview.Primitive) {
 	b, _ := base64.StdEncoding.DecodeString(IMG_AUTH)
 	img, _ := jpeg.Decode(bytes.NewReader(b))
 	image := tview.NewImage().
