@@ -12,6 +12,7 @@ User B enters the access key and password to decrypt the onion address and conne
 
 Users exchange messages encrypted with each other's RSA public keys.
 
+![screenshot](assets/screenshot.png)
 
 # Whats up with the name?
 Shai-hulud is the name of the giant sandworms in the Dune universe. 
