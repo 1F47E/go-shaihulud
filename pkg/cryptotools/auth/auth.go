@@ -22,13 +22,14 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"go-dmtor/pkg/config"
-	"go-dmtor/pkg/cryptotools/onion"
-	"go-dmtor/pkg/interfaces"
 	mrand "math/rand"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/1F47E/go-shaihulud/pkg/config"
+	"github.com/1F47E/go-shaihulud/pkg/cryptotools/onion"
+	"github.com/1F47E/go-shaihulud/pkg/interfaces"
 )
 
 var SESSION_DIR = config.SESSION_DIR

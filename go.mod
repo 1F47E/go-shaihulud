@@ -1,6 +1,6 @@
-module go-dmtor
+module github.com/1F47E/go-shaihulud
 
-go 1.19
+go 1.20
 
 require (
 	github.com/cretz/bine v0.2.0

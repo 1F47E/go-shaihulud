@@ -2,8 +2,9 @@ package auth
 
 import (
 	"bytes"
-	myaes "go-dmtor/pkg/cryptotools/aes"
 	"testing"
+
+	myaes "github.com/1F47E/go-shaihulud/pkg/cryptotools/aes"
 
 	"github.com/stretchr/testify/assert"
 )

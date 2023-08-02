@@ -16,6 +16,20 @@ Users exchange messages encrypted with each other's RSA public keys.
 # Whats up with the name?
 Shai-hulud is the name of the giant sandworms in the Dune universe. 
 
+# Dependencies
+[Tor The Onion Router](https://www.torproject.org/download/) - free and open-source software for enabling anonymous communication by directing Internet traffic through a free overlay network.
+
+Mac OS
+```
+brew install tor
+```
+
+Linux:
+```
+sudo apt-get update
+sudo apt-get install tor
+```
+
 
 # Current stage: 
 - Project is still under development.

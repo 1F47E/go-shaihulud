@@ -1,6 +1,6 @@
 package msgcrypter
 
-import "go-dmtor/pkg/interfaces"
+import "github.com/1F47E/go-shaihulud/pkg/interfaces"
 
 type MessageCrypter struct {
 	crypter interfaces.Asymmetric

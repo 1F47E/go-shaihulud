@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"go-dmtor/pkg/client"
-	myrsa "go-dmtor/pkg/cryptotools/rsa"
-	"go-dmtor/pkg/gui"
-	"go-dmtor/pkg/logger"
 	"os"
 	"os/signal"
+
+	"github.com/1F47E/go-shaihulud/pkg/client"
+	myrsa "github.com/1F47E/go-shaihulud/pkg/cryptotools/rsa"
+	"github.com/1F47E/go-shaihulud/pkg/gui"
+	"github.com/1F47E/go-shaihulud/pkg/logger"
 
 	"golang.org/x/term"
 )

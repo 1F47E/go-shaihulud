@@ -3,8 +3,9 @@ package localclient
 import (
 	"context"
 	"fmt"
-	"go-dmtor/pkg/client/message"
 	"net"
+
+	"github.com/1F47E/go-shaihulud/pkg/client/message"
 )
 
 type LocalClient struct {

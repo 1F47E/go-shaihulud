@@ -3,11 +3,12 @@ package onion
 import (
 	"bytes"
 	"encoding/base32"
-	"go-dmtor/pkg/config"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/1F47E/go-shaihulud/pkg/config"
 
 	// "crypto/rand"
 

@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"go-dmtor/pkg/client/connection"
-	"go-dmtor/pkg/client/message"
-	cfg "go-dmtor/pkg/config"
-	"go-dmtor/pkg/interfaces"
-	"go-dmtor/pkg/logger"
 	"io"
 	"time"
+
+	"github.com/1F47E/go-shaihulud/pkg/client/connection"
+	"github.com/1F47E/go-shaihulud/pkg/client/message"
+	cfg "github.com/1F47E/go-shaihulud/pkg/config"
+	"github.com/1F47E/go-shaihulud/pkg/interfaces"
+	"github.com/1F47E/go-shaihulud/pkg/logger"
 )
 
 var log = logger.New()

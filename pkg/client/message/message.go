@@ -21,8 +21,9 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
-	"go-dmtor/pkg/logger"
 	mrand "math/rand"
+
+	"github.com/1F47E/go-shaihulud/pkg/logger"
 )
 
 var log = logger.New()
