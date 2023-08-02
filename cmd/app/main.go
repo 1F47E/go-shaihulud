@@ -4,6 +4,7 @@ import (
 	"context"
 	"go-dmtor/pkg/client"
 	myrsa "go-dmtor/pkg/cryptotools/rsa"
+	"go-dmtor/pkg/gui"
 	"go-dmtor/pkg/logger"
 	"os"
 	"os/signal"
@@ -16,6 +17,9 @@ var log = logger.New()
 var usage = "Usage: <srv|cli>\n"
 
 func main() {
+	if os.Getenv("GUI") == "1" {
+		gui.Draw()
+	}
 
 	// get input args
 	args := os.Args
