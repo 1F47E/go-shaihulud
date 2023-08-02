@@ -1,30 +1,39 @@
-```
- _____  ___   _   _______ _    _  ______________  ___
-/  ___|/ _ \ | \ | |  _  \ |  | ||  _  | ___ \  \/  |
-\ `--./ /_\ \|  \| | | | | |  | || | | | |_/ / .  . |
- `--. \  _  || . ` | | | | |/\| || | | |    /| |\/| |
-/\__/ / | | || |\  | |/ /\  /\  /\ \_/ / |\ \| |  | |
-\____/\_| |_/\_| \_/___/  \/  \/  \___/\_| \_\_|  |_/
-                                                     
+![Secure p2p chat over tor network](assets/banner.jpg)
 
-```
-# go-tor-chat-wip
-WIP p2p chat via tor network
-With keys exchange and RSA encryption
+
+# SHAI HULUD
+Secure, command-line interface (CLI) chat application that leverages the Tor network for enhanced privacy.
+
+It's peer-to-peer meaning that there is no central server. User A creates a chat server and user B connects to it.
+
+The access key is an AES-encrypted version of the Tor onion address, shared in a human-readable hex format.
+
+User B enters the access key and password to decrypt the onion address and connect to user A.
+
+Users exchange messages encrypted with each other's RSA public keys.
+
+
+# Whats up with the name?
+Shai-hulud is the name of the giant sandworms in the Dune universe. 
+
+
+# Current stage: 
+- Project is still under development.
+- Chat is working over tor connection with RSA encryption and keys exchange.
+- Messages are encrypted with RSA public key of the recipient.
+
+- GUI is not implemented yet, but you can chat via terminal.
 
 # Connection flow
-```
-Client A starts the tor server, generates access key, which is onion address encrypted with a password
-Client A shares the access key and password with Client B
-Client B enters the access key and password to decrypt the onion address
-Client B connects to the onion address
-Clients exchange public keys
-Clients encrypt messages with each other's public keys
-```
+- Client A starts the tor server, generates access key, which is onion address encrypted with a password
+- Client A shares the access key and password with Client B
+- Client B enters the access key and password to decrypt the onion address
+- Client B connects to the onion address
+- Clients exchange public keys
+- Clients encrypt messages with each other's public keys
 
 
 # Access key and password
-```
 The access key is a readable binary key in hex format
 that resembles 1234-ABCD-EFGH-5678....
 This key represents the AES-encrypted onion address.
@@ -36,8 +45,7 @@ The password consists of random bytes converted to upper-case hex format.
 
 It is also used to sign messages via HMAC to verify message integrity.
 
-Workflow:
-
+# Workflow:
 User A (server), after connecting to Tor and generating an onion address, encrypts this address with a randomly generated password.
 
 User A then shares the access key (AES-encrypted onion address) and password with User B.
@@ -45,6 +53,11 @@ User A then shares the access key (AES-encrypted onion address) and password wit
 The password and access key should be shared via different channels for security.
 
 User B enters the access key and then the password to decrypt the onion address.
+```
+
+
+
+
 
                                                                        
 +----------------+                                                        +-------------+
@@ -81,13 +94,17 @@ User B enters the access key and then the password to decrypt the onion address.
 |    (Server)    |                                                        |   (Client)  |
 +----------------+                                                        +-------------+
 ```
+# ENVS
+- TOR=0 - disable tor connection for dev purposes
+- DEBUG=1 - enable debug mode
+- GUI=1 - enable gui mode (work in progress)
 
 
 # TODO
 - [ ] restore last session
 - [ ] graceful shutdown
-- [ ] allow reconnect, do not closed connection 
-- [ ] encode access as BEP39 mnemonic
+- [ ] allow reconnect
+- [ ] encode access key as BEP39 mnemonic
 - [ ] add timestamps to the messages to prevent replay attacks
 - [ ] sign every message with hmac to verify integrity and prevent MITM attacks
 - [ ] ack on handshake received
