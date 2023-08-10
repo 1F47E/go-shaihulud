@@ -1,4 +1,4 @@
-package torclient
+package client_tor
 
 import (
 	"context"
@@ -30,9 +30,8 @@ func New(ctx context.Context, cancel context.CancelFunc, msgCh chan message.Mess
 	}
 }
 
+// Start the tor service and return the listener
 func (c *TorClient) RunServer(_ string, onionPrivKey []byte) (net.Listener, error) {
-	log.Info("Starting tor...")
-	// Start the tor service and return the listener
 	t, err := tor.Start(c.ctx, nil)
 	if err != nil {
 		return nil, err

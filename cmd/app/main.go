@@ -51,7 +51,6 @@ func main() {
 	go func() {
 		switch arg {
 		case "srv":
-			// TODO: refactor to work with custom tor connection
 			session := ""
 			err := cli.RunServer(session)
 			if err != nil {

@@ -8,9 +8,9 @@ import (
 
 	"github.com/1F47E/go-shaihulud/pkg/client/connection"
 	"github.com/1F47E/go-shaihulud/pkg/client/listner"
-	"github.com/1F47E/go-shaihulud/pkg/client/localclient"
+	client_local "github.com/1F47E/go-shaihulud/pkg/client/local"
 	"github.com/1F47E/go-shaihulud/pkg/client/message"
-	"github.com/1F47E/go-shaihulud/pkg/client/torclient"
+	client_tor "github.com/1F47E/go-shaihulud/pkg/client/tor"
 	cfg "github.com/1F47E/go-shaihulud/pkg/config"
 	myaes "github.com/1F47E/go-shaihulud/pkg/cryptotools/aes"
 	"github.com/1F47E/go-shaihulud/pkg/cryptotools/auth"
@@ -51,9 +51,9 @@ func NewClient(ctx context.Context, cancel context.CancelFunc, connType Connecti
 	// init connector debug or tor
 	switch connType {
 	case Local:
-		connector = localclient.New(ctx, cancel, msgCh)
+		connector = client_local.New(ctx, cancel, msgCh)
 	case Tor:
-		connector = torclient.New(ctx, cancel, msgCh)
+		connector = client_tor.New(ctx, cancel, msgCh)
 	}
 
 	// create listner
