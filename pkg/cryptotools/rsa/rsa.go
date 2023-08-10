@@ -22,14 +22,6 @@ func New() (*RsaCrypter, error) {
 		return nil, err
 	}
 	pubKey := &privKey.PublicKey
-	// key debug
-	// log.Printf("rsa public key: %x\n", pubKey)
-	// pubKeyBytes := x509.MarshalPKCS1PublicKey(pubKey)
-	// log.Printf("rsa public key bytes: %x\n", pubKeyBytes)
-	// get PEM format of pubblic key
-	// pubKeyPem := x509.MarshalPKCS1PublicKey(pubKey)
-	// log.Printf("rsa public key pem: %x\n", pubKeyPem)
-
 	return &RsaCrypter{privKey: privKey, pubKey: pubKey}, nil
 }
 
@@ -60,31 +52,5 @@ func (r *RsaCrypter) Decrypt(data []byte) ([]byte, error) {
 
 // get pub key as bytes to send over network
 func (r *RsaCrypter) PubKey() []byte {
-	// return x509.MarshalPKIXPublicKey(&r.pubKey)
 	return x509.MarshalPKCS1PublicKey(r.pubKey)
 }
-
-// func (r *RsaCrypter) PubToBytes() ([]byte, error) {
-// 	return x509.MarshalPKIXPublicKey(r.pubKey.N.Bytes())
-// }
-
-// func Keygen() rsa.PrivateKey {
-// 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	return *privateKey
-// }
-
-// func PubToBytes(pub *rsa.PublicKey) ([]byte, error) {
-// 	return x509.MarshalPKIXPublicKey(pub)
-// }
-//
-// func BytesToPub(pubBytes []byte) (*rsa.PublicKey, error) {
-// 	publicKeyInterface, err := x509.ParsePKIXPublicKey(pubBytes)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	publicKey := publicKeyInterface.(*rsa.PublicKey)
-// 	return publicKey, nil
-// }

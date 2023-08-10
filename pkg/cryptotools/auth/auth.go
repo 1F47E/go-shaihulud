@@ -65,12 +65,6 @@ func New(crypter interfaces.Symmetric, session string) (*Auth, error) {
 	accessKey := ""
 	var onioner interfaces.Onioner
 
-	// if isDebug {
-	// 	// encode local address
-	// 	localAddr := "localhost:3000"
-	// 	accessKey = Encode([]byte(localAddr))
-	// } else {
-
 	// create or load onion key
 	if session == "" {
 		// create new onion
@@ -95,7 +89,6 @@ func New(crypter interfaces.Symmetric, session string) (*Auth, error) {
 	}
 
 	accessKey = Encode(onionPubKeyCipher)
-	// }
 
 	a := Auth{
 		crypter:   crypter,
@@ -115,6 +108,7 @@ func NewFromKey(crypter interfaces.Symmetric, accessKey, password string) (*Auth
 	if err != nil {
 		return nil, err
 	}
+
 	// decrypt key bytes with password
 	keyBytes, err := crypter.Decrypt(keyBytesCipher, password)
 	if err != nil {
@@ -237,16 +231,10 @@ func Encode(pubKey []byte) string {
 	hex := fmt.Sprintf("%x", pubKey)
 	hex = strings.ToUpper(hex)
 	return hex
-	// parts := make([]string, 0)
-	// for i := 0; i < len(hex); i += 4 {
-	// 	parts = append(parts, hex[i:i+4])
-	// }
-	// return strings.Join(parts, "-")
 }
 
 // decode from custom hex format to bytes
 func Decode(key string) ([]byte, error) {
-	// bHex := strings.ReplaceAll(key, "-", "")
 	key = strings.ToLower(key)
 	return hex.DecodeString(key)
 }

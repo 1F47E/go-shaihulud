@@ -58,10 +58,7 @@ func (l *Listner) Sender(user *connection.Connection, crypter interfaces.Asymmet
 			log.Debugf("Sender: Got msg: %v\n", msg)
 			// send bytes to the connection
 			mBytes, _ := msg.Serialize()
-			// w, err := conn.Write(mBytes)
-			// if err != nil {
-			// 	log.Fatalf("write error: %v\n", err)
-			// }
+
 			w, err := writer.Write(mBytes)
 			if err != nil {
 				log.Fatalf("Sender: write error: %v\n", err)

@@ -1,3 +1,5 @@
+// Read onion struct from session file
+// Create onion struct from priv key bytes
 package onion
 
 import (
@@ -10,8 +12,6 @@ import (
 
 	"github.com/1F47E/go-shaihulud/pkg/config"
 
-	// "crypto/rand"
-
 	"math/rand"
 
 	"github.com/cretz/bine/torutil/ed25519"
@@ -20,10 +20,6 @@ import (
 )
 
 var SESSION_DIR = config.SESSION_DIR
-
-// Functions
-// Read onion struct from session file
-// Create onion struct from priv key bytes
 
 type Onion struct {
 	keyPair     *ed25519.PrivateKey
@@ -84,43 +80,6 @@ func (o *Onion) PrivKey() []byte {
 func (o *Onion) Address() string {
 	return o.address
 }
-
-// TODO: save as session ID not onion address
-// func (o *Onion) Save() error {
-// 	// create session dir if not exists
-// 	err := os.MkdirAll(SESSION_DIR, 0700)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	path := filepath.Join(SESSION_DIR, o.session)
-// 	f, err := os.Create(path)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer f.Close()
-// 	_, err = f.Write(o.keyPair.PrivateKey())
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-// TODO: move to utils
-// func sessionName(address string) string {
-// 	hash := sha3.Sum256([]byte(address))
-// 	hex := strings.ToUpper(fmt.Sprintf("%x", hash))
-// 	// split into 4 parts
-// 	parts := []string{}
-// 	p := 4
-// 	for i := 0; i < p; i++ {
-// 		parts = append(parts, hex[i*p:i*p+p])
-// 		// keep only 2 parts
-// 		if len(parts) == 2 {
-// 			break
-// 		}
-// 	}
-// 	return strings.Join(parts, "-")
-// }
 
 func pubKeyToAddress(pubKeyBytes []byte) (string, error) {
 	pubKey := ed25519.PublicKey(pubKeyBytes)

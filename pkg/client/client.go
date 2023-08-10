@@ -107,7 +107,6 @@ func (c *Client) RunServer(session string) error {
 	log.Info("Server started")
 
 	// accept incoming connections
-
 	go func() {
 		for {
 			select {

@@ -37,7 +37,7 @@ sudo apt-get install tor
 - Chat is working over tor connection with RSA encryption and keys exchange.
 - Messages are encrypted with RSA public key of the recipient.
 
-- GUI is not implemented yet, but you can chat via terminal.
+- TUI is not implemented yet, but you can chat via terminal.
 
 # Connection flow
 - Client A starts the tor server, generates access key, which is onion address encrypted with a password
@@ -112,7 +112,7 @@ User B enters the access key and then the password to decrypt the onion address.
 # ENVS
 - TOR=0 - disable tor connection for dev purposes
 - DEBUG=1 - enable debug mode
-- GUI=1 - enable gui mode (work in progress)
+- TUI=1 - enable Text User Interface mode (work in progress)
 
 
 # TODO
@@ -124,7 +124,7 @@ User B enters the access key and then the password to decrypt the onion address.
 - [ ] sign every message with hmac to verify integrity and prevent MITM attacks
 - [ ] ack on handshake received
 - [ ] ack on every message
-- [ ] chat gui
+- [ ] chat gui (tui)
 - [ ] send files
 - [ ] allow multiple users in a chat room
 - [ ] test coverage for all packages
