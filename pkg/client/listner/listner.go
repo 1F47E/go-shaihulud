@@ -14,8 +14,6 @@ import (
 	"github.com/1F47E/go-shaihulud/pkg/logger"
 )
 
-var log = logger.New()
-
 type Listner struct {
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -32,11 +30,10 @@ func New(ctx context.Context, cancel context.CancelFunc, msgCh chan message.Mess
 
 // goroutine per connection
 func (l *Listner) Sender(user *connection.Connection, crypter interfaces.Asymmetric) {
+	log := logger.New()
 	log.Debug("Listner.Sender: Starting")
 	defer func() {
-		log.Warn("Sender: exit")
-		// l.disconnect()
-		//c.cancel() // do not cancel the main app ctx
+		log.Debug("Sender: exit")
 		l.cancel() // cancel only listners&senders ctx
 	}()
 
@@ -75,13 +72,14 @@ func (l *Listner) Sender(user *connection.Connection, crypter interfaces.Asymmet
 
 // goroutine per connection
 func (l *Listner) Receiver(user *connection.Connection, crypter interfaces.Asymmetric) {
+	log := logger.New()
+
 	log.Debug("Listner.Receiver: Starting")
+
 	ticker := time.NewTicker(1 * time.Second)
 	defer func() {
-		log.Warn("Listner: exit")
-		// c.disconnect()
+		log.Debug("Listner: exit")
 		ticker.Stop()
-		// c.cancel() // to not exit the app on disconnect, wait for another connection
 		l.cancel() // cancel only local context for listners
 	}()
 
@@ -99,14 +97,6 @@ func (l *Listner) Receiver(user *connection.Connection, crypter interfaces.Asymm
 			n, err := user.Conn.Read(bytes)
 			if err != nil {
 				if err == io.EOF {
-					// The connection was closed.
-					// msg := ""
-					// if l.conn.Name != "" {
-					// 	msg = fmt.Sprintf("<%s> disconnected", l.conn.Name)
-					// } else {
-					// 	msg = "Client disconnected"
-					// }
-					// log.Warn(msg)
 					log.Warn("Listner: Connection closed")
 					return
 				}
@@ -121,17 +111,19 @@ func (l *Listner) Receiver(user *connection.Connection, crypter interfaces.Asymm
 			}
 			log.Debugf("Msg type: %s\n", msg.Type)
 
-			// Messages
+			// react on incoming message
+
 			switch msg.Type {
 
-			case message.HELLO:
+			case message.HLLO:
 				log.Info(">>Hello!")
 
 			case message.ACK:
-				log.Info(">>Ack!")
+				log.Debugf(">> Ack! msg %d delivered", msg.Nonce)
+				println("☑︎")
 
 			case message.MSG:
-				log.Debugf("\nraw msg %d, data %d bytes:\n=====\n%x\n=====\n", len(msg.Body), len(msg.Data()), msg.Body)
+				log.Debugf("\nraw msg %d bytes:\n=====\n%x\n=====\n", len(msg.Body), msg.Body)
 				// decode msg
 				decrypted, err := crypter.Decrypt(msg.Body)
 				if err != nil {
@@ -152,15 +144,21 @@ func (l *Listner) Receiver(user *connection.Connection, crypter interfaces.Asymm
 					user.UpdateName()
 					log.Infof("<%s> entered the chat", user.Name)
 				}
+			case message.DISC:
+				log.Warnf("<%s> disconnected", user.Name)
 
 			default:
-				fmt.Printf(">>%s\n", msg.Type)
+				log.Warnf("unknown message type: %s\n", msg.Type)
 				if msg.Len > 0 {
 					fmt.Printf("len: %d\n", msg.Len)
 					fmt.Printf("data: %s\n", string(msg.Body))
 				}
 			}
-			// TODO: send ack
+
+			// send delivery confirmation (ACK)
+			if msg.Type != message.ACK && msg.Nonce > 0 {
+				l.msgCh <- message.NewAck(msg.Nonce)
+			}
 		}
 	}
 }

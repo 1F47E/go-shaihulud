@@ -96,7 +96,7 @@ func (a *AEScrypter) Decrypt(data []byte, password string) ([]byte, error) {
 	// get the nonce size
 	nonceSize := gcm.NonceSize()
 	if len(ciphertext) < nonceSize {
-		fmt.Println(err)
+		return nil, fmt.Errorf("ciphertext too short, nonceSize: %d", nonceSize)
 	}
 	// extract our nonce from our encrypted text
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]

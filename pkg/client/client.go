@@ -18,8 +18,6 @@ import (
 	"github.com/1F47E/go-shaihulud/pkg/logger"
 )
 
-var log = logger.New()
-
 // can be local or tor
 type Connector interface {
 	RunServer(address string, onionPrivKey []byte) (net.Listener, error)
@@ -72,6 +70,7 @@ func NewClient(ctx context.Context, cancel context.CancelFunc, connType Connecti
 }
 
 func (c *Client) RunServer(session string) error {
+	log := logger.New()
 
 	// generate auth key and password
 	crypter := myaes.New()
@@ -79,10 +78,15 @@ func (c *Client) RunServer(session string) error {
 	if err != nil {
 		log.Fatalf("cant create auth: %v\n", err)
 	}
-	log.Warn("========== AUTH ==========")
-	log.Warnf("Key: %s\n\n", auth.AccessKey())
-	log.Warnf("Password: %s\n", auth.Password())
-	log.Warn("==========================")
+
+	// auth creds for the client
+	println()
+	log.Warn("🔑 Client auth creds")
+	log.Warn("=======================================")
+	log.Warnf(" Key: %s\n\n", auth.AccessKey())
+	log.Warnf(" Password: %s\n", auth.Password())
+	log.Warn("=======================================")
+	println()
 
 	// get address
 	address := ""
@@ -104,7 +108,7 @@ func (c *Client) RunServer(session string) error {
 	if err != nil {
 		return err
 	}
-	log.Info("Server started")
+	log.Info("Server started, waiting for connections...")
 
 	// accept incoming connections
 	go func() {
@@ -140,6 +144,7 @@ func (c *Client) RunServer(session string) error {
 }
 
 func (c *Client) RunClient(key, password string) error {
+	log := logger.New()
 
 	// create auth struct and try to decode key
 	aes := myaes.New()
@@ -150,6 +155,7 @@ func (c *Client) RunClient(key, password string) error {
 		}
 		log.Fatalf("cant create auth: %v\n", err)
 	}
+	log.Info("✅ Auth key and password are valid, connecting...")
 
 	// ===== At this point access key and pass are valid
 
@@ -161,7 +167,7 @@ func (c *Client) RunClient(key, password string) error {
 		log.Infof("Connecting to %s...", address)
 	case Tor:
 		address = ath.OnionAddressFull()
-		log.Info("Connecting to tor...")
+		log.Info("Starting tor...")
 		log.Debugf("onion address: %v\n", address)
 	default:
 		log.Fatalf("unknown connection type: %v\n", c.connType)
@@ -186,6 +192,7 @@ func (c *Client) RunClient(key, password string) error {
 }
 
 func (c *Client) ListenUserInput() {
+	log := logger.New().WithField("scope", "client.ListenUserInput")
 	for {
 		select {
 		case <-c.ctx.Done():

@@ -31,18 +31,18 @@ var log = logger.New()
 type MsgType uint32
 
 const (
-	HELLO MsgType = iota
-	ACK
-	MSG
-	KEY
-	RUOK
-	IMOK
-	DISCONNECT
+	HLLO MsgType = iota
+	ACK          // delivery
+	MSG          // text message
+	KEY          // rsa public key
+	RUOK         // ping
+	IMOK         // pong
+	DISC         // disconnect
 )
 
 type Message struct {
 	Type  MsgType
-	Nonce uint32 // for ack
+	Nonce uint32 // random int for ack to reply back
 	Len   uint32
 	Body  []byte
 }
@@ -56,10 +56,10 @@ func NewMSG(msg []byte) Message {
 	}
 }
 
-func NewAck() Message {
+func NewAck(nonce uint32) Message {
 	return Message{
 		Type:  ACK,
-		Nonce: nonce(),
+		Nonce: nonce,
 		Len:   0,
 		Body:  nil,
 	}
@@ -67,8 +67,17 @@ func NewAck() Message {
 
 func NewHello() Message {
 	return Message{
-		Type:  HELLO,
+		Type:  HLLO,
 		Nonce: nonce(),
+		Len:   0,
+		Body:  nil,
+	}
+}
+
+func NewDisconnect() Message {
+	return Message{
+		Type:  DISC,
+		Nonce: 0,
 		Len:   0,
 		Body:  nil,
 	}
@@ -83,6 +92,7 @@ func NewKey(key []byte) Message {
 	}
 }
 
+// math/rand is not cryptographically secure but good enough for nonce
 func nonce() uint32 {
 	b := make([]byte, 4)
 	_, err := rand.Read(b)
@@ -94,7 +104,7 @@ func nonce() uint32 {
 
 func (t MsgType) String() string {
 	switch t {
-	case HELLO:
+	case HLLO:
 		return "HELLO"
 	case ACK:
 		return "ACK"
@@ -102,7 +112,7 @@ func (t MsgType) String() string {
 		return "MSG"
 	case KEY:
 		return "KEY"
-	case DISCONNECT:
+	case DISC:
 		return "DISCONNECT"
 	case RUOK:
 		return "RUOK"
@@ -113,15 +123,16 @@ func (t MsgType) String() string {
 	}
 }
 
-func (m *Message) Data() []byte {
-	if m.Len == 0 {
-		return nil
-	}
-	if m.Len > uint32(len(m.Body)) {
-		return m.Body
-	}
-	return m.Body[:m.Len]
-}
+// // TODO: remove? not used
+// func (m *Message) Data() []byte {
+// 	if m.Len == 0 {
+// 		return nil
+// 	}
+// 	if m.Len > uint32(len(m.Body)) {
+// 		return m.Body
+// 	}
+// 	return m.Body[:m.Len]
+// }
 
 func (m *Message) Serialize() ([]byte, error) {
 	buf := new(bytes.Buffer)

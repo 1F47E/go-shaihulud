@@ -15,7 +15,7 @@ import (
 
 var log = logger.New()
 
-var usage = "Usage: <srv|cli>\n"
+var usage = "Usage: <srv | cli key>\n"
 
 func main() {
 	if os.Getenv("TUI") == "1" {

@@ -4,17 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/1F47E/go-shaihulud/pkg/client/message"
 
-	"github.com/1F47E/go-shaihulud/pkg/logger"
-
 	"github.com/cretz/bine/tor"
 	"github.com/cretz/bine/torutil/ed25519"
 )
-
-var log = logger.New()
 
 type TorClient struct {
 	ctx    context.Context
@@ -50,22 +47,25 @@ func (c *TorClient) RunClient(address string) (net.Conn, error) {
 	// Start tor with default config (can set start conf's DebugWriter to os.Stdout for debug logs)
 	t, err := tor.Start(c.ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("TorClient start error: %w", err)
+		return nil, fmt.Errorf("tor start error: %w", err)
 	}
 
 	// Wait at most a minute to start network and get
 	dialCtx, dialCancel := context.WithTimeout(context.Background(), time.Minute)
-	defer dialCancel() // BUG: ?
+	defer dialCancel()
 
 	// custom tor dialer
 	dialer, err := t.Dialer(dialCtx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Tor dialer create error: %w", err)
+		return nil, fmt.Errorf("tor dialer create error: %w", err)
 	}
 
 	conn, err := dialer.Dial("tcp", address)
 	if err != nil {
-		return nil, fmt.Errorf("Tor dial error: %w", err)
+		if strings.Contains(err.Error(), "host unreachable") {
+			return nil, fmt.Errorf("tor server is down :(")
+		}
+		return nil, fmt.Errorf("tor dial error: %w", err)
 	}
 
 	return conn, nil
