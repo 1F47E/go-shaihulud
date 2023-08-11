@@ -122,8 +122,9 @@ User B enters the access key and then the password to decrypt the onion address.
 - [ ] encode access key as BEP39 mnemonic
 - [ ] add timestamps to the messages to prevent replay attacks
 - [ ] sign every message with hmac to verify integrity and prevent MITM attacks
-- [ ] ack on handshake received
-- [ ] ack on every message
+- [x] ack on handshake received
+- [ ] print that handshake was received
+- [x] ack on every message
 - [ ] chat gui (tui)
 - [ ] send files
 - [ ] allow multiple users in a chat room
