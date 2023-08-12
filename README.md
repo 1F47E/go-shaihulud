@@ -115,9 +115,13 @@ User B enters the access key and then the password to decrypt the onion address.
 - TUI=1 - enable Text User Interface mode (work in progress)
 
 
-# TODO
-- [ ] restore last session
+# TODO before v0.1
+
+- [ ] session restoration with password
 - [ ] graceful shutdown
+- [ ] access key ask as input not arg
+
+# TODO
 - [x] allow reconnect
 - [ ] encode access key as BEP39 mnemonic
 - [ ] add timestamps to the messages to prevent replay attacks
