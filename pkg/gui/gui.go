@@ -1,3 +1,6 @@
+// experiments with fullscreen interface via tcell lib
+// not very successful so far
+
 package gui
 
 import (

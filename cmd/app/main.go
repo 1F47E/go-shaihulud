@@ -4,11 +4,14 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/1F47E/go-shaihulud/pkg/client"
 	myrsa "github.com/1F47E/go-shaihulud/pkg/cryptotools/rsa"
-	"github.com/1F47E/go-shaihulud/pkg/gui"
+
+	// "github.com/1F47E/go-shaihulud/pkg/gui"
 	"github.com/1F47E/go-shaihulud/pkg/logger"
+	"github.com/1F47E/go-shaihulud/pkg/tui"
 
 	"golang.org/x/term"
 )
@@ -18,18 +21,29 @@ var log = logger.New()
 var usage = "Usage: <srv | cli key>\n"
 
 func main() {
-	if os.Getenv("TUI") == "1" {
-		gui.Draw()
-	}
 
 	// get input args
-	args := os.Args
-	if len(args) == 1 {
-		log.Fatal(usage)
-	}
+	// args := os.Args
+	// if len(args) == 1 {
+	// 	log.Fatal(usage)
+	// }
+	args := []string{"", "cli", "key"}
 	arg := args[1]
 
 	ctx, cancel := context.WithCancel(context.Background())
+
+	eventsCh := make(chan tui.Event)
+	if os.Getenv("TUI") == "1" {
+		t := tui.New(ctx, eventsCh)
+		go t.Run()
+	}
+	eventsCh <- tui.NewEventText("hello tor")
+	time.Sleep(1 * time.Second)
+	eventsCh <- tui.NewEventSpin("loading tor...")
+	time.Sleep(3 * time.Second)
+	eventsCh <- tui.NewEventAccess("key", "password")
+	time.Sleep(3 * time.Second)
+	panic("test")
 
 	// create assym crypter for communication
 	crypter, err := myrsa.New()
