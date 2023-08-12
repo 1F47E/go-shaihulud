@@ -1,13 +1,13 @@
 ![Secure p2p chat over tor network](assets/banner.jpg)
+## [![Build Status](https://github.com/1F47E/go-shaihulud/actions/workflows/go.yml/badge.svg)](https://github.com/1F47E/go-shaihulud/actions/workflows/go.yml)  [![Go Report Card](https://goreportcard.com/badge/1F47E/go-shaihulud)](https://goreportcard.com/report/1F47E/go-shaihulud)
 
 
 # SHAI HULUD
-Secure, command-line interface (CLI) chat application that leverages the Tor network for enhanced privacy.
-
-It's peer-to-peer meaning that there is no central server. User A creates a chat server and user B connects to it.
+Secure, command-line interface (CLI) chat application that uses Tor network.
+It's peer-to-peer, meaning that there is no central server.
+User A creates a chat server and user B connects to it.
 
 The access key is an AES-encrypted version of the Tor onion address, shared in a human-readable hex format.
-
 User B enters the access key and password to decrypt the onion address and connect to user A.
 
 Users exchange messages encrypted with each other's RSA public keys.
@@ -18,7 +18,7 @@ Users exchange messages encrypted with each other's RSA public keys.
 Shai-hulud is the name of the giant sandworms in the Dune universe. 
 
 # Dependencies
-[Tor The Onion Router](https://www.torproject.org/download/) - free and open-source software for enabling anonymous communication by directing Internet traffic through a free overlay network.
+[Tor The Onion Router](https://www.torproject.org/download/) - free and open-source software for enabling anonymous communication by directing traffic through a free overlay network.
 
 Mac OS
 ```
@@ -32,12 +32,10 @@ sudo apt-get install tor
 ```
 
 
-# Current stage: 
-- Project is still under development.
+# Current stage
 - Chat is working over tor connection with RSA encryption and keys exchange.
-- Messages are encrypted with RSA public key of the recipient.
-
-- TUI is not implemented yet, but you can chat via terminal.
+- Onion address is hidden inside access key
+- User interface is in progress but basic user chat is working
 
 # Connection flow
 - Client A starts the tor server, generates access key, which is onion address encrypted with a password
