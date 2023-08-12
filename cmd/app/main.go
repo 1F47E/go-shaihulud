@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/1F47E/go-shaihulud/pkg/client"
 	myrsa "github.com/1F47E/go-shaihulud/pkg/cryptotools/rsa"
@@ -23,11 +22,11 @@ var usage = "Usage: <srv | cli key>\n"
 func main() {
 
 	// get input args
-	// args := os.Args
-	// if len(args) == 1 {
-	// 	log.Fatal(usage)
-	// }
-	args := []string{"", "cli", "key"}
+	args := os.Args
+	if len(args) == 1 {
+		log.Fatal(usage)
+	}
+	// args := []string{"", "cli", "key"}
 	arg := args[1]
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -37,13 +36,12 @@ func main() {
 		t := tui.New(ctx, eventsCh)
 		go t.Run()
 	}
-	eventsCh <- tui.NewEventText("hello tor")
-	time.Sleep(1 * time.Second)
-	eventsCh <- tui.NewEventSpin("loading tor...")
-	time.Sleep(3 * time.Second)
-	eventsCh <- tui.NewEventAccess("key", "password")
-	time.Sleep(3 * time.Second)
-	panic("test")
+	// time.Sleep(1 * time.Second)
+	// eventsCh <- tui.NewEventSpin("loading tor...")
+	// time.Sleep(3 * time.Second)
+	// eventsCh <- tui.NewEventAccess("key", "password")
+	// time.Sleep(3 * time.Second)
+	// panic("test")
 
 	// create assym crypter for communication
 	crypter, err := myrsa.New()
@@ -58,13 +56,14 @@ func main() {
 	} else {
 		connType = client.Tor
 	}
-	cli := client.NewClient(ctx, cancel, connType, crypter)
+	cli := client.NewClient(ctx, cancel, connType, crypter, eventsCh)
 
 	// TODO: add new session command and connect to old session.
 	// or select a previous session from a list
 	go func() {
 		switch arg {
 		case "srv":
+			eventsCh <- tui.NewEventSpin("Loading...")
 			session := ""
 			err := cli.RunServer(session)
 			if err != nil {
@@ -85,6 +84,7 @@ func main() {
 				log.Fatalf("Error reading password: %v", err)
 			}
 
+			eventsCh <- tui.NewEventSpin("Connecting...")
 			err = cli.RunClient(key, string(password))
 			if err != nil {
 				log.Fatalf("server connect error: %v\n", err)

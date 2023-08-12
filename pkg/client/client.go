@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/1F47E/go-shaihulud/pkg/cryptotools/auth"
 	"github.com/1F47E/go-shaihulud/pkg/interfaces"
 	"github.com/1F47E/go-shaihulud/pkg/logger"
+	"github.com/1F47E/go-shaihulud/pkg/tui"
 )
 
 // can be local or tor
@@ -35,6 +37,7 @@ type Client struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	msgCh     chan message.Message
+	eventsCh  chan tui.Event // tui
 	connector Connector
 	crypter   interfaces.Asymmetric
 	user      *connection.Connection
@@ -42,7 +45,7 @@ type Client struct {
 	connType  ConnectionType
 }
 
-func NewClient(ctx context.Context, cancel context.CancelFunc, connType ConnectionType, crypter interfaces.Asymmetric) *Client {
+func NewClient(ctx context.Context, cancel context.CancelFunc, connType ConnectionType, crypter interfaces.Asymmetric, eventsCh chan tui.Event) *Client {
 	msgCh := make(chan message.Message)
 	var connector Connector
 
@@ -62,6 +65,7 @@ func NewClient(ctx context.Context, cancel context.CancelFunc, connType Connecti
 		ctx:       ctx,
 		cancel:    cancel,
 		msgCh:     msgCh,
+		eventsCh:  eventsCh,
 		connector: connector,
 		crypter:   crypter,
 		listner:   lstnr,
@@ -80,35 +84,48 @@ func (c *Client) RunServer(session string) error {
 	}
 
 	// auth creds for the client
-	println()
-	log.Warn("🔑 Client auth creds")
-	log.Warn("=======================================")
-	log.Warnf(" Key: %s\n\n", auth.AccessKey())
-	log.Warnf(" Password: %s\n", auth.Password())
-	log.Warn("=======================================")
-	println()
+	c.eventsCh <- tui.NewEventAccess(auth.AccessKey(), auth.Password())
+	log.Debugf("auth key: \n%s\n", auth.AccessKey())
+	log.Debugf("password: %s\n", auth.Password())
+
+	// println()
+	// log.Warn("🔑 Client auth creds")
+	// log.Warn("=======================================")
+	// log.Warnf(" Key: %s\n\n", auth.AccessKey())
+	// log.Warnf(" Password: %s\n", auth.Password())
+	// log.Warn("=======================================")
+	// println()
 
 	// get address
 	address := ""
+	msgLoading := ""
+	msgSuccess := ""
 	switch c.connType {
 	case Local:
-		log.Info("Starting local server...")
 		address = "localhost:3000"
+		msgLoading = fmt.Sprintf("Starting local server on %s", address)
+		msgSuccess = fmt.Sprintf("Local server started at %s, waiting for incoming connections...", address)
 	case Tor:
-		log.Info("Starting tor...")
+		msgLoading = "Starting tor..."
+		msgSuccess = "Tor server started, waiting for incoming connections..."
 		address = auth.OnionAddressFull()
-		log.Debugf("onion address: %v\n", address)
+		log.Debugf("starting tor, onion address: %v\n", address)
 	default:
 		log.Fatalf("unknown connection type: %v\n", c.connType)
 	}
 
+	c.eventsCh <- tui.NewEventSpin(msgLoading)
 	// run server with a given address
 	log.Debugf("Client.RunServer: %v\n", address)
 	listener, err := c.connector.RunServer(address, auth.Onion().PrivKey())
 	if err != nil {
 		return err
 	}
-	log.Info("Server started, waiting for connections...")
+	c.eventsCh <- tui.NewEventSpin(msgSuccess)
+
+	// msg := "Server started, waiting for connections..."
+	// log.Debug(msg)
+	// c.eventsCh <- tui.NewEventSpin(msg)
 
 	// accept incoming connections
 	go func() {
@@ -130,12 +147,15 @@ func (c *Client) RunServer(session string) error {
 				c.user = user
 				log.Debug("Client.RunServer: Got a connection")
 
+				c.eventsCh <- tui.NewEventSpin("Accepting incoming connection...")
+
 				// Create a new Listner for each connection
 				ctx, cancel := context.WithCancel(c.ctx)
 				listner := listner.New(ctx, cancel, c.msgCh)
 				go listner.Sender(user, c.crypter)
 				go listner.Receiver(user, c.crypter)
 				go c.ListenUserInput()
+				c.eventsCh <- tui.NewEventText("User connected")
 			}
 		}
 	}()

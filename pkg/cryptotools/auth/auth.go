@@ -163,7 +163,16 @@ func (a *Auth) Onion() interfaces.Onioner {
 }
 
 func (a *Auth) AccessKey() string {
-	return a.accessKey
+	// split access key into groups
+	groupLen := 42
+	key := ""
+	for i, c := range a.accessKey {
+		if i%groupLen == 0 {
+			key += "\n"
+		}
+		key += string(c)
+	}
+	return key
 }
 
 func (a *Auth) Password() string {

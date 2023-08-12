@@ -212,11 +212,11 @@ func (w *Widget) View() string {
 
 	output := ""
 	if w.authKey != "" && w.authPassword != "" {
-		output += "\n" + pad + " Client auth creds for connection"
-		output += "\n" + pad + helpStyle("=======================================")
-		output += "\n" + pad + " Key: " + w.authKey
-		output += "\n" + pad + " Password: " + w.authPassword
-		output += "\n" + pad + helpStyle("=======================================")
+		output += "\n" + "Client connection credentials:"
+		output += "\n" + helpStyle("=======================================")
+		output += "\n" + "Key\n" + w.authKey
+		output += "\n\n" + "Password\n" + w.authPassword
+		output += "\n" + helpStyle("=======================================")
 		output += "\n"
 	}
 
