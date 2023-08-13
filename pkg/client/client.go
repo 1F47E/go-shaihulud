@@ -106,7 +106,7 @@ func (c *Client) RunServer(session string) error {
 		msgLoading = fmt.Sprintf("Starting local server on %s", address)
 		msgSuccess = fmt.Sprintf("Local server started at %s, waiting for incoming connections...", address)
 	case Tor:
-		msgLoading = "Starting tor..."
+		msgLoading = "Starting TOR..."
 		msgSuccess = "Tor server started, waiting for incoming connections..."
 		address = auth.OnionAddressFull()
 		log.Debugf("starting tor, onion address: %v\n", address)
@@ -173,25 +173,30 @@ func (c *Client) RunClient(key, password string) error {
 		if strings.Contains(err.Error(), "authentication failed") {
 			log.Fatal("wrong password")
 		}
-		log.Fatalf("cant create auth: %v\n", err)
+		log.Fatalf("Auth error: %v\n", err)
 	}
-	log.Info("✅ Auth key and password are valid, connecting...")
+
+	msg := "✅ Access granted, connecting..."
+	c.eventsCh <- tui.NewEventText(msg)
 
 	// ===== At this point access key and pass are valid
 
 	// get address to connect to
 	address := ""
+	output := ""
 	switch c.connType {
 	case Local:
 		address = "localhost:3000"
-		log.Infof("Connecting to %s...", address)
+		output = fmt.Sprintf("Connecting to %s...", address)
+		log.Debugf(output)
 	case Tor:
 		address = ath.OnionAddressFull()
-		log.Info("Starting tor...")
-		log.Debugf("onion address: %v\n", address)
+		output = "Starting TOR..."
+		log.Debugf("Starting tor, connecting to onion address: %v\n", address)
 	default:
 		log.Fatalf("unknown connection type: %v\n", c.connType)
 	}
+	c.eventsCh <- tui.NewEventSpin(output)
 
 	// Run the connector
 	conn, err := c.connector.RunClient(address)

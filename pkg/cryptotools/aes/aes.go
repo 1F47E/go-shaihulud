@@ -69,7 +69,6 @@ func (a *AEScrypter) Decrypt(data []byte, password string) ([]byte, error) {
 	if len(data) < 32 {
 		return nil, errors.New("invalid data len")
 	}
-	// fmt.Printf("data len: %d\n", len(data))
 
 	// get salt from the end
 	salt, ciphertext := data[len(data)-32:], data[:len(data)-32]

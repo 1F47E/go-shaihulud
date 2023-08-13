@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 
@@ -11,8 +12,6 @@ import (
 	// "github.com/1F47E/go-shaihulud/pkg/gui"
 	"github.com/1F47E/go-shaihulud/pkg/logger"
 	"github.com/1F47E/go-shaihulud/pkg/tui"
-
-	"golang.org/x/term"
 )
 
 var log = logger.New()
@@ -26,16 +25,17 @@ func main() {
 	if len(args) == 1 {
 		log.Fatal(usage)
 	}
-	// args := []string{"", "cli", "key"}
 	arg := args[1]
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// TUI init (events channel for tui status updates)
 	eventsCh := make(chan tui.Event)
-	if os.Getenv("TUI") == "1" {
-		t := tui.New(ctx, eventsCh)
-		go t.Run()
-	}
+	t := tui.New(ctx, eventsCh)
+	go t.Listner()
+	go t.RenderLoader()
+
+	//
 	// time.Sleep(1 * time.Second)
 	// eventsCh <- tui.NewEventSpin("loading tor...")
 	// time.Sleep(3 * time.Second)
@@ -70,22 +70,17 @@ func main() {
 				log.Fatalf("server start error: %v\n", err)
 			}
 		case "cli":
-			// TODO: allow bypass auth for dev
-			// get key as a param
-			if len(args) != 3 {
-				log.Fatalf("Usage: %s key <key>\n", args[0])
-			}
-			key := args[2]
-			// TODO: validate key
-
-			log.Info("Enter password:")
-			password, err := term.ReadPassword(int(os.Stdin.Fd()))
+			key, password, err := t.RenderAuth()
 			if err != nil {
-				log.Fatalf("Error reading password: %v", err)
+				log.Fatalf("auth error: %v\n", err)
 			}
+			fmt.Printf("key: %s\n", key)
+			fmt.Printf("password: %s\n", password)
 
+			// TODO: validate password first before connecting,
+			// expose crypter func to validate password
 			eventsCh <- tui.NewEventSpin("Connecting...")
-			err = cli.RunClient(key, string(password))
+			err = cli.RunClient(key, password)
 			if err != nil {
 				log.Fatalf("server connect error: %v\n", err)
 			}
