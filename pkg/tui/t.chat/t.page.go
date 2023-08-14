@@ -22,54 +22,10 @@ import (
 // tea.EnterAltScreen().
 const useHighPerformanceRenderer = false
 
-var (
-	titleStyle = func() lipgloss.Style {
-		b := lipgloss.RoundedBorder()
-		b.Right = "├"
-		return lipgloss.NewStyle().BorderStyle(b).Padding(0, 1)
-	}()
-
-	infoStyle = func() lipgloss.Style {
-		b := lipgloss.RoundedBorder()
-		b.Left = "┤"
-		return titleStyle.Copy().BorderStyle(b)
-	}()
-)
-
-// type ChatWidget struct {
-// 	viewport viewport.Model
-// 	step     step
-// 	messages []string
-// 	// auth     Auth
-// 	// key      string
-// 	// password string
-// 	textarea textarea.Model
-// 	value    string
-// }
-
-// func NewChatWidget() *ChatWidget {
-
 var senderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 var styleOnline = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render
 
-// func (c *customTextarea) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-// 	switch msg := msg.(type) {
-// 	case tea.KeyMsg:
-// 		// Intercept and modify the input here, before it's processed by the textarea's Update
-// 		if msg.String() == "a" {
-// 			// If the user typed "a", replace it with "b"
-// 			msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}}
-// 		}
-// 	}
-
-// 	// Now call the original Update method
-// 	m, cmd := c.Model.Update(msg)
-// 	c.Model = m.(textarea.Model)
-// 	return c, cmd
-// }
-
 type PageWidget struct {
-	// content  string
 	ready    bool
 	messages []string
 
@@ -77,8 +33,6 @@ type PageWidget struct {
 	viewport viewport.Model
 	textarea textarea.Model
 	status   viewport.Model
-	// textarea textarea.Model
-	// value    string
 }
 
 func NewPageWidget() *PageWidget {
@@ -102,8 +56,6 @@ func NewPageWidget() *PageWidget {
 	for i := 1; i <= 100; i++ {
 		messages = append(messages, senderStyle.Render("You: ")+fmt.Sprintf("message %d", i))
 	}
-
-	// content := strings.Join(messages, "\n\n")
 
 	w := PageWidget{
 		textarea: ta,
