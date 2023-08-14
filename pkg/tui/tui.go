@@ -4,6 +4,7 @@ import (
 	"context"
 
 	tauth "github.com/1F47E/go-shaihulud/pkg/tui/t.auth"
+	tchat "github.com/1F47E/go-shaihulud/pkg/tui/t.chat"
 	tstatus "github.com/1F47E/go-shaihulud/pkg/tui/t.status"
 )
 
@@ -35,6 +36,11 @@ func (t *TUI) RenderAuth() (string, string, error) {
 func (t *TUI) RenderLoader() {
 	t.loader.SetText("")
 	t.loader.Run()
+}
+
+func (t *TUI) RenderChat() {
+	page := tchat.NewPageWidget("some text")
+	page.Run()
 }
 
 // read events from channel and update spinner/progress bar

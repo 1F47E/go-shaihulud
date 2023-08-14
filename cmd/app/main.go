@@ -32,6 +32,9 @@ func main() {
 	// TUI init (events channel for tui status updates)
 	eventsCh := make(chan tui.Event)
 	t := tui.New(ctx, eventsCh)
+	t.RenderChat()
+	panic("test")
+
 	go t.Listner()
 	go t.RenderLoader()
 
