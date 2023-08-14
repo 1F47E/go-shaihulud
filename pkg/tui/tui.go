@@ -39,7 +39,7 @@ func (t *TUI) RenderLoader() {
 }
 
 func (t *TUI) RenderChat() {
-	page := tchat.NewPageWidget("some text")
+	page := tchat.NewPageWidget()
 	page.Run()
 }
 
