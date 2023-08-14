@@ -52,8 +52,24 @@ var (
 var senderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 var styleOnline = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render
 
+// func (c *customTextarea) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+// 	switch msg := msg.(type) {
+// 	case tea.KeyMsg:
+// 		// Intercept and modify the input here, before it's processed by the textarea's Update
+// 		if msg.String() == "a" {
+// 			// If the user typed "a", replace it with "b"
+// 			msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}}
+// 		}
+// 	}
+
+// 	// Now call the original Update method
+// 	m, cmd := c.Model.Update(msg)
+// 	c.Model = m.(textarea.Model)
+// 	return c, cmd
+// }
+
 type PageWidget struct {
-	content  string
+	// content  string
 	ready    bool
 	messages []string
 
@@ -78,6 +94,7 @@ func NewPageWidget() *PageWidget {
 
 	// Remove cursor line styling
 	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
+	ta.KeyMap.InsertNewline.SetEnabled(false)
 
 	ta.ShowLineNumbers = false
 
@@ -86,30 +103,24 @@ func NewPageWidget() *PageWidget {
 		messages = append(messages, senderStyle.Render("You: ")+fmt.Sprintf("message %d", i))
 	}
 
-	content := strings.Join(messages, "\n\n")
+	// content := strings.Join(messages, "\n\n")
 
 	w := PageWidget{
-		content:  content,
 		textarea: ta,
 		messages: messages,
 	}
 	return &w
 }
 
+func (m *PageWidget) Content() string {
+	return strings.Join(m.messages, "\n\n")
+}
+
 func (m *PageWidget) Run() {
-	// Load some text for our viewport
-	// content, err := os.ReadFile("README.md")
-	// if err != nil {
-	// 	fmt.Println("could not load file:", err)
-	// 	os.Exit(1)
-	// }
-
-	// fake messages
-
 	p := tea.NewProgram(
 		m,
-		tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
-		tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel
+		tea.WithAltScreen(),       // fullscreen
+		tea.WithMouseCellMotion(), // mouse scroll for messages
 	)
 
 	if _, err := p.Run(); err != nil {
@@ -130,13 +141,23 @@ func (m PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
+
+		switch msg.Type {
+		case tea.KeyCtrlC, tea.KeyEsc:
+			fmt.Println("EXIT...")
 			return m, tea.Quit
+
+		case tea.KeyTab:
+			m.textarea.SetValue(m.textarea.Value() + "\n")
+
+		case tea.KeyEnter:
+			m.messages = append(m.messages, m.textarea.Value())
+			m.viewport.SetContent(m.Content())
+			m.textarea.Reset()
+			m.viewport.GotoBottom()
 		}
 
 	case tea.WindowSizeMsg:
-		// headerHeight := lipgloss.Height(m.headerView())
-		// footerHeight := lipgloss.Height(m.status.View())
 		headerHeight := 2
 		footerHeight := 2
 		chatHeight := 5 + 1 + 1 // with paddings
@@ -151,7 +172,7 @@ func (m PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
 			m.viewport.YPosition = headerHeight
 			m.viewport.HighPerformanceRendering = useHighPerformanceRenderer
-			m.viewport.SetContent(m.content)
+			m.viewport.SetContent(m.Content())
 			m.ready = true
 
 			// top bar
@@ -187,6 +208,10 @@ func (m PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// This is needed for high-performance rendering only.
 			cmds = append(cmds, viewport.Sync(m.viewport))
 		}
+	default:
+		// update viewport with messages
+		m.viewport.SetContent(m.Content())
+		m.viewport.GotoBottom()
 	}
 
 	// Handle keyboard and mouse events in the viewport
@@ -208,64 +233,15 @@ func (m PageWidget) View() string {
 	if !m.ready {
 		return "\n  Initializing..."
 	}
-	// m.viewport.Style = lipgloss.NewStyle().
-	// 	BorderStyle(lipgloss.RoundedBorder()).
-	// 	BorderForeground(lipgloss.Color("62")).
-	// 	PaddingRight(2)
 
 	m.topBar.Style = lipgloss.NewStyle().
-		// BorderStyle(lipgloss.RoundedBorder()).
-		// BorderForeground(lipgloss.Color("33")).
 		Background(lipgloss.Color("99")).
 		PaddingRight(2)
 
 	m.status.Style = lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#555")).
-		// Background(lipgloss.Color("3")).
 		PaddingRight(2)
 
-	// return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 	return fmt.Sprintf("%s\n%s\n\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.textarea.View(), m.status.View())
 }
-
-// func (m *PageWidget) headerView() string {
-// 	title := titleStyle.Render("CHAT")
-// 	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title)))
-// 	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
-// }
-
-// func (m *PageWidget) footerView() string {
-// 	// info := infoStyle.Render(fmt.Sprintf("%3.f%%", m.viewport.ScrollPercent()*100))
-// 	info := "connected"
-// 	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(info)))
-// 	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
-// }
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-// func main() {
-// 	// Load some text for our viewport
-// 	content, err := os.ReadFile("artichoke.md")
-// 	if err != nil {
-// 		fmt.Println("could not load file:", err)
-// 		os.Exit(1)
-// 	}
-
-// 	w := PageWidget{content: string(content)}
-// 	p := tea.NewProgram(
-// 		w,
-// 		tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
-// 		tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel
-// 	)
-
-// 	if _, err := p.Run(); err != nil {
-// 		fmt.Println("could not run program:", err)
-// 		os.Exit(1)
-// 	}
-// }
