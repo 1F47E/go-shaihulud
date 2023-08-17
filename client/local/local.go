@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/1F47E/go-shaihulud/pkg/client/message"
+	"github.com/1F47E/go-shaihulud/client/message"
 )
 
 type ClientLocal struct {

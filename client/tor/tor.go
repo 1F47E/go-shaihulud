@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/1F47E/go-shaihulud/pkg/client/message"
+	"github.com/1F47E/go-shaihulud/client/message"
 
 	"github.com/cretz/bine/tor"
 	"github.com/cretz/bine/torutil/ed25519"

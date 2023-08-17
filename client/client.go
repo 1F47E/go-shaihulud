@@ -7,17 +7,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/1F47E/go-shaihulud/pkg/client/connection"
-	"github.com/1F47E/go-shaihulud/pkg/client/listner"
-	client_local "github.com/1F47E/go-shaihulud/pkg/client/local"
-	"github.com/1F47E/go-shaihulud/pkg/client/message"
-	client_tor "github.com/1F47E/go-shaihulud/pkg/client/tor"
-	cfg "github.com/1F47E/go-shaihulud/pkg/config"
-	myaes "github.com/1F47E/go-shaihulud/pkg/cryptotools/aes"
-	"github.com/1F47E/go-shaihulud/pkg/cryptotools/auth"
-	"github.com/1F47E/go-shaihulud/pkg/interfaces"
-	"github.com/1F47E/go-shaihulud/pkg/logger"
-	"github.com/1F47E/go-shaihulud/pkg/tui"
+	"github.com/1F47E/go-shaihulud/client/connection"
+	"github.com/1F47E/go-shaihulud/client/listner"
+	client_local "github.com/1F47E/go-shaihulud/client/local"
+	"github.com/1F47E/go-shaihulud/client/message"
+	client_tor "github.com/1F47E/go-shaihulud/client/tor"
+	cfg "github.com/1F47E/go-shaihulud/config"
+	myaes "github.com/1F47E/go-shaihulud/cryptotools/aes"
+	"github.com/1F47E/go-shaihulud/cryptotools/auth"
+	"github.com/1F47E/go-shaihulud/interfaces"
+	"github.com/1F47E/go-shaihulud/logger"
+	"github.com/1F47E/go-shaihulud/tui"
 )
 
 // can be local or tor

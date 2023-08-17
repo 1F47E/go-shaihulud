@@ -27,9 +27,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/1F47E/go-shaihulud/pkg/config"
-	"github.com/1F47E/go-shaihulud/pkg/cryptotools/onion"
-	"github.com/1F47E/go-shaihulud/pkg/interfaces"
+	"github.com/1F47E/go-shaihulud/config"
+	"github.com/1F47E/go-shaihulud/cryptotools/onion"
+	"github.com/1F47E/go-shaihulud/interfaces"
 )
 
 var SESSION_DIR = config.SESSION_DIR

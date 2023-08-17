@@ -6,12 +6,12 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/1F47E/go-shaihulud/pkg/client"
-	myrsa "github.com/1F47E/go-shaihulud/pkg/cryptotools/rsa"
+	"github.com/1F47E/go-shaihulud/client"
+	myrsa "github.com/1F47E/go-shaihulud/cryptotools/rsa"
 
-	// "github.com/1F47E/go-shaihulud/pkg/gui"
-	"github.com/1F47E/go-shaihulud/pkg/logger"
-	"github.com/1F47E/go-shaihulud/pkg/tui"
+	// "github.com/1F47E/go-shaihulud/gui"
+	"github.com/1F47E/go-shaihulud/logger"
+	"github.com/1F47E/go-shaihulud/tui"
 )
 
 var log = logger.New()

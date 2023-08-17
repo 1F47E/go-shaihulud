@@ -3,9 +3,9 @@ package tui
 import (
 	"context"
 
-	tauth "github.com/1F47E/go-shaihulud/pkg/tui/t.auth"
-	tchat "github.com/1F47E/go-shaihulud/pkg/tui/t.chat"
-	tstatus "github.com/1F47E/go-shaihulud/pkg/tui/t.status"
+	tauth "github.com/1F47E/go-shaihulud/tui/t.auth"
+	tchat "github.com/1F47E/go-shaihulud/tui/t.chat"
+	tstatus "github.com/1F47E/go-shaihulud/tui/t.status"
 )
 
 type TUI struct {

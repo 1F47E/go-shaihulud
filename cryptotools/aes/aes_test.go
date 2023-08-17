@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/1F47E/go-shaihulud/pkg/cryptotools/auth"
+	"github.com/1F47E/go-shaihulud/cryptotools/auth"
 
 	"github.com/stretchr/testify/assert"
 )

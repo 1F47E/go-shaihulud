@@ -23,7 +23,7 @@ import (
 	"encoding/binary"
 	mrand "math/rand"
 
-	"github.com/1F47E/go-shaihulud/pkg/logger"
+	"github.com/1F47E/go-shaihulud/logger"
 )
 
 var log = logger.New()
