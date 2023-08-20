@@ -6,6 +6,7 @@ const (
 	eventTypeSpin eventType = iota
 	eventTypeBar
 	eventTypeText
+	eventTypeTextError
 	eventTypeAccess
 )
 
@@ -39,6 +40,13 @@ func NewEventBar(text string, percent float64) Event {
 func NewEventText(text string) Event {
 	return Event{
 		eventType: eventTypeText,
+		text:      text,
+	}
+}
+
+func NewEventError(text string) Event {
+	return Event{
+		eventType: eventTypeTextError,
 		text:      text,
 	}
 }

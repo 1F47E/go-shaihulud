@@ -32,7 +32,7 @@ func main() {
 	eventsCh := make(chan tui.Event)
 	t := tui.New(ctx, eventsCh)
 	go t.Listner()
-	go t.RenderChat()
+	// go t.RenderChat()
 	// time.Sleep(3 * time.Second)
 	// t.SetMode(t.Mode)
 	// panic("test")
@@ -60,6 +60,8 @@ func main() {
 	} else {
 		connType = client.Tor
 	}
+
+	// TODO: move connection logic our of main
 	cli := client.NewClient(ctx, cancel, connType, crypter, eventsCh)
 
 	// TODO: add new session command and connect to old session.
@@ -74,9 +76,7 @@ func main() {
 				log.Fatalf("server start error: %v\n", err)
 			}
 		case "cli":
-			key := "123"
-			password := "123"
-			// key, password, err := t.RenderAuth()
+			key, password, err := t.RenderAuth()
 			if err != nil {
 				log.Fatalf("auth error: %v\n", err)
 			}
@@ -88,7 +88,8 @@ func main() {
 			eventsCh <- tui.NewEventSpin("Connecting...")
 			err = cli.RunClient(key, password)
 			if err != nil {
-				log.Fatalf("server connect error: %v\n", err)
+				log.Error(err)
+				os.Exit(0)
 			}
 
 		default:

@@ -29,6 +29,7 @@ type PageMode int
 
 const (
 	Loading PageMode = iota
+	Access
 	Chat
 )
 

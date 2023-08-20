@@ -163,10 +163,20 @@ func (w *AuthWidget) View() string {
 }
 
 func (w *AuthWidget) Run() (string, string, error) {
-	p := tea.NewProgram(w)
+	// p := tea.NewProgram(w)
+	p := tea.NewProgram(
+		w,
+		tea.WithAltScreen(),       // fullscreen
+		tea.WithMouseCellMotion(), // mouse scroll for messages
+	)
 
 	if _, err := p.Run(); err != nil {
 		return "", "", err
 	}
 	return w.key, w.password, nil
+
+	// if _, err := p.Run(); err != nil {
+	// 	fmt.Println("could not run program:", err)
+	// 	os.Exit(1)
+	// }
 }

@@ -10,7 +10,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render
+// var helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render
+
+var (
+	renderSuccess = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render
+	renderError   = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render
+	renderGray    = lipgloss.NewStyle().Foreground(lipgloss.Color("242")).Render
+)
 
 type TUI struct {
 	ctx      context.Context
@@ -31,13 +37,13 @@ func New(ctx context.Context, eventsCh chan Event) *TUI {
 }
 
 // renders are blocking
-// func (t *TUI) RenderAuth() (string, string, error) {
-// 	key, password, err := t.auth.Run()
-// 	if err != nil {
-// 		return "", "", err
-// 	}
-// 	return key, password, nil
-// }
+func (t *TUI) RenderAuth() (string, string, error) {
+	key, password, err := t.auth.Run()
+	if err != nil {
+		return "", "", err
+	}
+	return key, password, nil
+}
 
 // func (t *TUI) RenderLoader() {
 // 	t.loader.SetText("")
@@ -69,13 +75,16 @@ func (t *TUI) Listner() {
 			case eventTypeText:
 				// t.loader.SetText(event.text)
 				t.chat.AddMessage(event.text)
+			case eventTypeTextError:
+				// t.loader.SetText(event.text)
+				t.chat.AddMessage(renderError(event.text))
 			case eventTypeAccess:
 				// t.loader.SetAccess(event.access.key, event.access.password)
 				output := "\n" + "Client connection credentials:"
-				output += "\n" + helpStyle("=======================================")
-				output += "\n" + "Key\n" + event.access.key
-				output += "\n\n" + "Password\n" + event.access.password
-				output += "\n" + helpStyle("=======================================")
+				output += "\n" + renderGray("=======================================")
+				output += "\n" + "Key\n" + renderSuccess(event.access.key)
+				output += "\n\n" + "Password\n" + renderSuccess(event.access.password)
+				output += "\n" + renderGray("=======================================")
 				t.chat.AddMessage(output)
 			}
 		}

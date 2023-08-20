@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/1F47E/go-shaihulud/client/connection"
@@ -12,7 +11,6 @@ import (
 	client_local "github.com/1F47E/go-shaihulud/client/local"
 	"github.com/1F47E/go-shaihulud/client/message"
 	client_tor "github.com/1F47E/go-shaihulud/client/tor"
-	cfg "github.com/1F47E/go-shaihulud/config"
 	myaes "github.com/1F47E/go-shaihulud/cryptotools/aes"
 	"github.com/1F47E/go-shaihulud/cryptotools/auth"
 	"github.com/1F47E/go-shaihulud/interfaces"
@@ -154,7 +152,7 @@ func (c *Client) RunServer(session string) error {
 				listner := listner.New(ctx, cancel, c.msgCh)
 				go listner.Sender(user, c.crypter)
 				go listner.Receiver(user, c.crypter)
-				go c.ListenUserInput()
+				// go c.ListenUserInput()
 				c.eventsCh <- tui.NewEventText("User connected")
 			}
 		}
@@ -171,9 +169,9 @@ func (c *Client) RunClient(key, password string) error {
 	ath, err := auth.NewFromKey(aes, key, password)
 	if err != nil {
 		if strings.Contains(err.Error(), "authentication failed") {
-			log.Fatal("wrong password")
+			return fmt.Errorf("wrong password")
 		}
-		log.Fatalf("Auth error: %v\n", err)
+		return fmt.Errorf("Access key error")
 	}
 
 	msg := "✅ Access granted, connecting..."
@@ -194,14 +192,14 @@ func (c *Client) RunClient(key, password string) error {
 		output = "Starting TOR..."
 		log.Debugf("Starting tor, connecting to onion address: %v\n", address)
 	default:
-		log.Fatalf("unknown connection type: %v\n", c.connType)
+		return fmt.Errorf("unknown connection type: %v\n", c.connType)
 	}
 	c.eventsCh <- tui.NewEventSpin(output)
 
 	// Run the connector
 	conn, err := c.connector.RunClient(address)
 	if err != nil {
-		return err
+		return fmt.Errorf("cant connect to server: %v\n", err)
 	}
 	user := connection.New(conn) // connection with user data
 	c.user = user
@@ -211,37 +209,37 @@ func (c *Client) RunClient(key, password string) error {
 	c.listner = listner.New(ctx, cancel, c.msgCh)
 	go c.listner.Sender(user, c.crypter)
 	go c.listner.Receiver(user, c.crypter)
-	go c.ListenUserInput()
+	// go c.ListenUserInput()
 
 	return nil
 }
 
-func (c *Client) ListenUserInput() {
-	log := logger.New().WithField("scope", "client.ListenUserInput")
-	for {
-		select {
-		case <-c.ctx.Done():
-			log.Warnf("context done: %v\n", c.ctx.Err())
-			return
-		default:
-			input := make([]byte, cfg.MSG_MAX_SIZE)
-			n, err := os.Stdin.Read(input)
-			if err != nil {
-				log.Fatalf("read error: %v\n", err)
-				return
-			}
-			text := input[:n]
-			log.Debugf("user input: %d %v\n", len(text), text)
-			log.Debugf("crypter: %v\n", c.crypter)
-			inputCipher, err := c.crypter.Encrypt(text, c.user.PubKey)
-			if err != nil {
-				log.Errorf("can't send a message: %v\n", err)
-			}
-			log.Debugf("inputCipher: %d %v\n", len(inputCipher), inputCipher)
-			c.msgCh <- message.NewMSG(inputCipher)
-		}
-	}
-}
+// func (c *Client) ListenUserInput() {
+// 	log := logger.New().WithField("scope", "client.ListenUserInput")
+// 	for {
+// 		select {
+// 		case <-c.ctx.Done():
+// 			log.Warnf("context done: %v\n", c.ctx.Err())
+// 			return
+// 		default:
+// 			input := make([]byte, cfg.MSG_MAX_SIZE)
+// 			n, err := os.Stdin.Read(input)
+// 			if err != nil {
+// 				log.Fatalf("read error: %v\n", err)
+// 				return
+// 			}
+// 			text := input[:n]
+// 			log.Debugf("user input: %d %v\n", len(text), text)
+// 			log.Debugf("crypter: %v\n", c.crypter)
+// 			inputCipher, err := c.crypter.Encrypt(text, c.user.PubKey)
+// 			if err != nil {
+// 				log.Errorf("can't send a message: %v\n", err)
+// 			}
+// 			log.Debugf("inputCipher: %d %v\n", len(inputCipher), inputCipher)
+// 			c.msgCh <- message.NewMSG(inputCipher)
+// 		}
+// 	}
+// }
 
 func (c *Client) Close() {
 	if c.user != nil && c.user.Conn != nil {
