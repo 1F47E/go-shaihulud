@@ -35,6 +35,8 @@ func New() (*Onion, error) {
 	if err != nil {
 		return nil, err
 	}
+	// print pub key in hex
+	// fmt.Printf("%x\n", keyPair.PublicKey())
 	return NewFromPrivKey(keyPair.PrivateKey())
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/1F47E/go-shaihulud/client"
 	myrsa "github.com/1F47E/go-shaihulud/cryptotools/rsa"
 
-	// "github.com/1F47E/go-shaihulud/gui"
 	"github.com/1F47E/go-shaihulud/logger"
 	"github.com/1F47E/go-shaihulud/tui"
 )
@@ -32,11 +31,13 @@ func main() {
 	// TUI init (events channel for tui status updates)
 	eventsCh := make(chan tui.Event)
 	t := tui.New(ctx, eventsCh)
-	t.RenderChat()
-	panic("test")
-
 	go t.Listner()
-	go t.RenderLoader()
+	go t.RenderChat()
+	// time.Sleep(3 * time.Second)
+	// t.SetMode(t.Mode)
+	// panic("test")
+
+	// go t.RenderLoader()
 
 	//
 	// time.Sleep(1 * time.Second)
@@ -73,7 +74,9 @@ func main() {
 				log.Fatalf("server start error: %v\n", err)
 			}
 		case "cli":
-			key, password, err := t.RenderAuth()
+			key := "123"
+			password := "123"
+			// key, password, err := t.RenderAuth()
 			if err != nil {
 				log.Fatalf("auth error: %v\n", err)
 			}

@@ -25,7 +25,15 @@ const useHighPerformanceRenderer = false
 var senderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 var styleOnline = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render
 
+type PageMode int
+
+const (
+	Loading PageMode = iota
+	Chat
+)
+
 type PageWidget struct {
+	mode     PageMode
 	ready    bool
 	messages []string
 
@@ -53,11 +61,12 @@ func NewPageWidget() *PageWidget {
 	ta.ShowLineNumbers = false
 
 	messages := make([]string, 0)
-	for i := 1; i <= 100; i++ {
+	for i := 1; i <= 1; i++ {
 		messages = append(messages, senderStyle.Render("You: ")+fmt.Sprintf("message %d", i))
 	}
 
 	w := PageWidget{
+		mode:     Loading,
 		textarea: ta,
 		messages: messages,
 	}
@@ -81,11 +90,21 @@ func (m *PageWidget) Run() {
 	}
 }
 
-func (m PageWidget) Init() tea.Cmd {
+func (m *PageWidget) SetMode(mode PageMode) {
+	m.mode = mode
+}
+
+func (m *PageWidget) AddMessage(msg string) {
+	// fmt.Printf("len messages: %d\n", len(m.messages))
+	m.messages = append(m.messages, msg)
+	// fmt.Printf("len messages: %d\n", len(m.messages))
+}
+
+func (m *PageWidget) Init() tea.Cmd {
 	return textarea.Blink
 }
 
-func (m PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -181,7 +200,7 @@ func (m PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m PageWidget) View() string {
+func (m *PageWidget) View() string {
 	if !m.ready {
 		return "\n  Initializing..."
 	}
@@ -195,5 +214,12 @@ func (m PageWidget) View() string {
 		BorderForeground(lipgloss.Color("#555")).
 		PaddingRight(2)
 
-	return fmt.Sprintf("%s\n%s\n\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.textarea.View(), m.status.View())
+	switch m.mode {
+	case Chat:
+		return fmt.Sprintf("%s\n%s\n\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.textarea.View(), m.status.View())
+	case Loading:
+		return fmt.Sprintf("%s\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.status.View())
+	default:
+		return ""
+	}
 }
