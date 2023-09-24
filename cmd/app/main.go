@@ -15,7 +15,7 @@ import (
 
 var log = logger.New()
 
-var usage = "Usage: <srv | cli key>\n"
+var usage = "Usage: <srv | cli>\n"
 
 func main() {
 
@@ -32,7 +32,7 @@ func main() {
 	eventsCh := make(chan tui.Event)
 	t := tui.New(ctx, eventsCh)
 	go t.Listner()
-	// go t.RenderChat()
+	go t.RenderChat()
 	// time.Sleep(3 * time.Second)
 	// t.SetMode(t.Mode)
 	// panic("test")
@@ -44,7 +44,7 @@ func main() {
 	// eventsCh <- tui.NewEventSpin("loading tor...")
 	// time.Sleep(3 * time.Second)
 	// eventsCh <- tui.NewEventAccess("key", "password")
-	// time.Sleep(3 * time.Second)
+	// time.Sleep(10 * time.Second)
 	// panic("test")
 
 	// create assym crypter for communication
