@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/1F47E/go-shaihulud/client"
 	myrsa "github.com/1F47E/go-shaihulud/cryptotools/rsa"
@@ -19,6 +19,20 @@ var usage = "Usage: <srv | cli>\n"
 
 func main() {
 
+	// ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	// TUI init (events channel for tui status updates)
+	eventsCh := make(chan tui.Event)
+	t := tui.New(ctx, eventsCh)
+	go t.Listner()
+	go t.RenderChat()
+
+	<-ctx.Done()
+	println("Bye")
+	os.Exit(0)
+
 	// get input args
 	args := os.Args
 	if len(args) == 1 {
@@ -26,13 +40,6 @@ func main() {
 	}
 	arg := args[1]
 
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// TUI init (events channel for tui status updates)
-	eventsCh := make(chan tui.Event)
-	t := tui.New(ctx, eventsCh)
-	go t.Listner()
-	go t.RenderChat()
 	// time.Sleep(3 * time.Second)
 	// t.SetMode(t.Mode)
 	// panic("test")
@@ -76,17 +83,24 @@ func main() {
 				log.Fatalf("server start error: %v\n", err)
 			}
 		case "cli":
-			key, password, err := t.RenderAuth()
-			if err != nil {
-				log.Fatalf("auth error: %v\n", err)
-			}
-			fmt.Printf("key: %s\n", key)
-			fmt.Printf("password: %s\n", password)
+			// TODO: auth disabled for debug
+			// key, password, err := t.RenderAuth()
+			// if err != nil {
+			// 	log.Fatalf("auth error: %v\n", err)
+			// }
+			// fmt.Printf("key: %s\n", key)
+			// fmt.Printf("password: %s\n", password)
+			// key, password := "", ""
+			// err := cli.AuthVerify(key, password)
+			// if err != nil {
+			// 	log.Errorf("")
+			// 	os.Exit(0)
+			// }
 
 			// TODO: validate password first before connecting,
 			// expose crypter func to validate password
 			eventsCh <- tui.NewEventSpin("Connecting...")
-			err = cli.RunClient(key, password)
+			err = cli.RunClient()
 			if err != nil {
 				log.Error(err)
 				os.Exit(0)

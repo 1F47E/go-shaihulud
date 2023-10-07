@@ -22,15 +22,20 @@ import (
 // tea.EnterAltScreen().
 const useHighPerformanceRenderer = false
 
-var senderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
-var styleOnline = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Render
+var (
+	senderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
+	styleRed    = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+	styleGreen  = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+	styleYellow = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	styleOnline = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+)
 
 type PageMode int
 
 const (
-	Loading PageMode = iota
-	Access
-	Chat
+	ModeLoading PageMode = iota
+	ModeAccess
+	ModeChat
 )
 
 type PageWidget struct {
@@ -46,7 +51,7 @@ type PageWidget struct {
 
 func NewPageWidget() *PageWidget {
 	ta := textarea.New()
-	ta.Placeholder = "Enter access key..."
+	ta.Placeholder = "Enter text..."
 	ta.Focus()
 
 	ta.Prompt = "┃ "
@@ -62,12 +67,17 @@ func NewPageWidget() *PageWidget {
 	ta.ShowLineNumbers = false
 
 	messages := make([]string, 0)
-	for i := 1; i <= 1; i++ {
-		messages = append(messages, senderStyle.Render("You: ")+fmt.Sprintf("message %d", i))
+	// fake
+	for i := 1; i <= 10; i++ {
+		messages = append(messages, senderStyle.Render("You:  ")+fmt.Sprintf("message %d", i))
+		messages = append(messages, senderStyle.Render("You: ")+styleRed.Render(" ⨯ ")+fmt.Sprintf("message %d", i))
+		messages = append(messages, senderStyle.Render("You: ")+styleYellow.Render(" … ")+fmt.Sprintf("message %d", i))
+		messages = append(messages, senderStyle.Render("You: ")+styleGreen.Render(" ☑︎ ")+fmt.Sprintf("message %d", i))
 	}
 
 	w := PageWidget{
-		mode:     Loading,
+		// mode:     Loading,
+		mode:     ModeChat,
 		textarea: ta,
 		messages: messages,
 	}
@@ -160,7 +170,7 @@ func (m *PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = viewport.New(msg.Width, 1)
 			m.status.YPosition = msg.Height - footerHeight
 			m.status.HighPerformanceRendering = useHighPerformanceRenderer
-			status := styleOnline("online")
+			status := styleOnline.Render("online")
 			m.status.SetContent("status: " + status)
 
 			// This is only necessary for high performance rendering, which in
@@ -216,10 +226,10 @@ func (m *PageWidget) View() string {
 		PaddingRight(2)
 
 	switch m.mode {
-	case Chat:
+	case ModeChat:
 		return fmt.Sprintf("%s\n%s\n\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.textarea.View(), m.status.View())
-	case Loading:
-		return fmt.Sprintf("%s\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.status.View())
+	// case Loading:
+	// return fmt.Sprintf("%s\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.status.View())
 	default:
 		return ""
 	}

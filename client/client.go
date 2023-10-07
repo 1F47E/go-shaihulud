@@ -161,9 +161,7 @@ func (c *Client) RunServer(session string) error {
 	return nil
 }
 
-func (c *Client) RunClient(key, password string) error {
-	log := logger.New()
-
+func (c *Client) AuthVerify(key, password string) error {
 	// create auth struct and try to decode key
 	aes := myaes.New()
 	ath, err := auth.NewFromKey(aes, key, password)
@@ -176,6 +174,13 @@ func (c *Client) RunClient(key, password string) error {
 
 	msg := "✅ Access granted, connecting..."
 	c.eventsCh <- tui.NewEventText(msg)
+	msg = fmt.Sprintf("Connecting to %s...", ath.OnionAddressFull())
+	c.eventsCh <- tui.NewEventText(msg)
+	return nil
+}
+
+func (c *Client) RunClient() error {
+	log := logger.New()
 
 	// ===== At this point access key and pass are valid
 
@@ -188,7 +193,8 @@ func (c *Client) RunClient(key, password string) error {
 		output = fmt.Sprintf("Connecting to %s...", address)
 		log.Debugf(output)
 	case Tor:
-		address = ath.OnionAddressFull()
+		// address = ath.OnionAddressFull() // BUG: assign onion address on init
+		address := "demo.onion"
 		output = "Starting TOR..."
 		log.Debugf("Starting tor, connecting to onion address: %v\n", address)
 	default:

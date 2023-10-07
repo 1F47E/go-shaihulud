@@ -55,6 +55,7 @@ func (t *TUI) RenderChat() {
 	t.chat.Run()
 }
 
+
 // read events from channel and update spinner/progress bar
 func (t *TUI) Listner() {
 
