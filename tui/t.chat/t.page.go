@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -32,6 +33,7 @@ const (
 	ModeLoading PageMode = iota
 	ModeAccess
 	ModeChat
+	ModeMenu
 )
 
 type PageWidget struct {
@@ -43,6 +45,11 @@ type PageWidget struct {
 	viewport viewport.Model
 	textarea textarea.Model
 	status   viewport.Model
+
+	// menu
+	menu     list.Model
+	choice   string
+	quitting bool
 }
 
 func NewPageWidget() *PageWidget {
@@ -101,11 +108,28 @@ func NewPageWidget() *PageWidget {
 		msg.SetError()
 	}(msg)
 
+	// init menu
+	items := []list.Item{
+		item("Yes"),
+		item("Cancel"),
+	}
+
+	const defaultWidth = 20
+
+	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
+	l.Title = "Quit?"
+	l.SetShowStatusBar(false)
+	l.SetFilteringEnabled(false)
+	l.Styles.Title = titleStyle
+	l.Styles.PaginationStyle = paginationStyle
+	l.Styles.HelpStyle = helpStyle
+
 	w := PageWidget{
 		// mode:     Loading,
 		mode:     ModeChat,
 		textarea: ta,
 		messages: messages,
+		menu:     l,
 	}
 	return &w
 }
@@ -157,8 +181,15 @@ func (m *PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 
 		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
-			fmt.Println("EXIT...")
+		case tea.KeyEsc:
+			if m.mode == ModeMenu {
+				m.mode = ModeChat
+			} else {
+				m.mode = ModeMenu
+			}
+
+		case tea.KeyCtrlC:
+			// fmt.Println("EXIT...")
 			return m, tea.Quit
 
 		case tea.KeyTab:
@@ -170,6 +201,12 @@ func (m *PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.SetContent(m.Content())
 			m.textarea.Reset()
 			m.viewport.GotoBottom()
+
+		case tea.KeyUp:
+			m.menu.CursorUp()
+
+		case tea.KeyDown:
+			m.menu.CursorDown()
 		}
 
 	case tea.WindowSizeMsg:
@@ -229,17 +266,24 @@ func (m *PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.GotoBottom()
 	}
 
-	// Handle keyboard and mouse events in the viewport
-	m.viewport, cmd = m.viewport.Update(msg)
-
 	// input
 	var cmdText tea.Cmd
-	m.textarea, cmdText = m.textarea.Update(msg)
+
+	if m.mode == ModeChat {
+		// Handle keyboard and mouse events in the viewport
+		m.viewport, cmd = m.viewport.Update(msg)
+
+		m.textarea, cmdText = m.textarea.Update(msg)
+	}
+	var cmdMenu tea.Cmd
+	// if m.mode == ModeMenu {
+	// 	_, cmd = m.menu.Update(msg)
+	// }
 
 	// status
 	var cmdStatus tea.Cmd
 	m.status, cmdStatus = m.status.Update(msg)
-	cmds = append(cmds, cmd, cmdText, cmdStatus)
+	cmds = append(cmds, cmd, cmdText, cmdStatus, cmdMenu)
 
 	return m, tea.Batch(cmds...)
 }
@@ -261,6 +305,17 @@ func (m *PageWidget) View() string {
 	switch m.mode {
 	case ModeChat:
 		return fmt.Sprintf("%s\n%s\n\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.textarea.View(), m.status.View())
+
+	// MENU
+	case ModeMenu:
+		if m.choice != "" {
+			return quitTextStyle.Render(fmt.Sprintf("%s? Sounds good to me.", m.choice))
+		}
+		if m.quitting {
+			return quitTextStyle.Render("Not hungry? That’s cool.")
+		}
+		return "\n" + m.menu.View()
+
 	// case Loading:
 	// return fmt.Sprintf("%s\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.status.View())
 	default:
