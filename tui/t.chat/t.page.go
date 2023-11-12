@@ -5,8 +5,10 @@ package tchat
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -22,13 +24,7 @@ import (
 // tea.EnterAltScreen().
 const useHighPerformanceRenderer = false
 
-var (
-	senderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
-	styleRed    = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
-	styleGreen  = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
-	styleYellow = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
-	styleOnline = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
-)
+//===== Page
 
 type PageMode int
 
@@ -41,7 +37,7 @@ const (
 type PageWidget struct {
 	mode     PageMode
 	ready    bool
-	messages []string
+	messages []*ChatMessage
 
 	topBar   viewport.Model
 	viewport viewport.Model
@@ -66,14 +62,44 @@ func NewPageWidget() *PageWidget {
 
 	ta.ShowLineNumbers = false
 
-	messages := make([]string, 0)
+	messages := make([]*ChatMessage, 0)
 	// fake
-	for i := 1; i <= 10; i++ {
-		messages = append(messages, senderStyle.Render("You:  ")+fmt.Sprintf("message %d", i))
-		messages = append(messages, senderStyle.Render("You: ")+styleRed.Render(" ⨯ ")+fmt.Sprintf("message %d", i))
-		messages = append(messages, senderStyle.Render("You: ")+styleYellow.Render(" … ")+fmt.Sprintf("message %d", i))
-		messages = append(messages, senderStyle.Render("You: ")+styleGreen.Render(" ☑︎ ")+fmt.Sprintf("message %d", i))
-	}
+	// for i := 1; i <= 10; i++ {
+	i := rand.Intn(100)
+	msg := NewChatMessage("name", fmt.Sprintf("message %d", i))
+	msg.SetSent()
+	messages = append(messages, msg)
+	go func(msg *ChatMessage) {
+		time.Sleep(1 * time.Second)
+		msg.SetSuccess()
+	}(msg)
+
+	i = rand.Intn(100)
+	msg = NewChatMessage("", fmt.Sprintf("message %d", i))
+	msg.SetSent()
+	messages = append(messages, msg)
+	go func(msg *ChatMessage) {
+		time.Sleep(1 * time.Second)
+		msg.SetError()
+	}(msg)
+
+	i = rand.Intn(100)
+	msg = NewChatMessage("name", fmt.Sprintf("message %d", i))
+	msg.SetSent()
+	messages = append(messages, msg)
+	go func(msg *ChatMessage) {
+		time.Sleep(1 * time.Second)
+		msg.SetSuccess()
+	}(msg)
+
+	i = rand.Intn(100)
+	msg = NewChatMessage("", fmt.Sprintf("message %d", i))
+	msg.SetSent()
+	messages = append(messages, msg)
+	go func(msg *ChatMessage) {
+		time.Sleep(1 * time.Second)
+		msg.SetError()
+	}(msg)
 
 	w := PageWidget{
 		// mode:     Loading,
@@ -85,7 +111,11 @@ func NewPageWidget() *PageWidget {
 }
 
 func (m *PageWidget) Content() string {
-	return strings.Join(m.messages, "\n\n")
+	messages := make([]string, 0)
+	for _, msg := range m.messages {
+		messages = append(messages, msg.Text())
+	}
+	return strings.Join(messages, "\n\n")
 }
 
 func (m *PageWidget) Run() {
@@ -105,8 +135,10 @@ func (m *PageWidget) SetMode(mode PageMode) {
 	m.mode = mode
 }
 
-func (m *PageWidget) AddMessage(msg string) {
+func (m *PageWidget) AddMessage(text string) {
 	// fmt.Printf("len messages: %d\n", len(m.messages))
+	msg := NewChatMessage("", text)
+	msg.SetSent()
 	m.messages = append(m.messages, msg)
 	// fmt.Printf("len messages: %d\n", len(m.messages))
 }
@@ -133,7 +165,8 @@ func (m *PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.textarea.SetValue(m.textarea.Value() + "\n")
 
 		case tea.KeyEnter:
-			m.messages = append(m.messages, m.textarea.Value())
+			// m.messages = append(m.messages, m.textarea.Value())
+			m.AddMessage(m.textarea.Value())
 			m.viewport.SetContent(m.Content())
 			m.textarea.Reset()
 			m.viewport.GotoBottom()
