@@ -110,14 +110,14 @@ func NewPageWidget() *PageWidget {
 
 	// init menu
 	items := []list.Item{
-		item("Yes"),
 		item("Cancel"),
+		item("Yes, exit"),
 	}
 
 	const defaultWidth = 20
 
 	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
-	l.Title = "Quit?"
+	l.Title = "Confirm exit?"
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
 	l.Styles.Title = titleStyle
@@ -181,26 +181,37 @@ func (m *PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 
 		switch msg.Type {
-		case tea.KeyEsc:
+		case tea.KeyCtrlC, tea.KeyEsc:
 			if m.mode == ModeMenu {
 				m.mode = ModeChat
 			} else {
 				m.mode = ModeMenu
 			}
 
-		case tea.KeyCtrlC:
-			// fmt.Println("EXIT...")
-			return m, tea.Quit
+		// case tea.KeyCtrlC:
+		// fmt.Println("EXIT...")
+		// return m, tea.Quit
 
 		case tea.KeyTab:
 			m.textarea.SetValue(m.textarea.Value() + "\n")
 
 		case tea.KeyEnter:
-			// m.messages = append(m.messages, m.textarea.Value())
-			m.AddMessage(m.textarea.Value())
-			m.viewport.SetContent(m.Content())
-			m.textarea.Reset()
-			m.viewport.GotoBottom()
+			switch m.mode {
+			case ModeMenu:
+				idx := m.menu.Index()
+				if idx == 0 {
+					m.mode = ModeChat
+				} else {
+					return m, tea.Quit
+				}
+
+			case ModeChat:
+				// m.messages = append(m.messages, m.textarea.Value())
+				m.AddMessage(m.textarea.Value())
+				m.viewport.SetContent(m.Content())
+				m.textarea.Reset()
+				m.viewport.GotoBottom()
+			}
 
 		case tea.KeyUp:
 			m.menu.CursorUp()
