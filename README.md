@@ -121,6 +121,10 @@ User B enters the access key and then the password to decrypt the onion address.
 - [ ] graceful shutdown
 - [ ] access key ask as input not arg
 
+# TODO tui progress
+- [x] chat window with messages
+- [x] exit menu
+
 # TODO
 - [x] allow reconnect
 - [ ] encode access key as BEP39 mnemonic
