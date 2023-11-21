@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/1F47E/go-shaihulud/client"
 	myrsa "github.com/1F47E/go-shaihulud/cryptotools/rsa"
@@ -33,11 +32,11 @@ func main() {
 	go t.RenderChat()
 	// eventsCh <- tui.NewEventLoading()
 
-	time.Sleep(1 * time.Second)
-	eventsCh <- tui.NewEventSpin("loading tor...")
-	time.Sleep(3 * time.Second)
-	eventsCh <- tui.NewEventAccess("key", "password")
-	time.Sleep(3 * time.Second)
+	// time.Sleep(1 * time.Second)
+	// eventsCh <- tui.NewEventSpin("loading tor...")
+	// time.Sleep(3 * time.Second)
+	// eventsCh <- tui.NewEventAccess("key", "password")
+	// time.Sleep(3 * time.Second)
 	// panic("test")
 
 	<-ctx.Done()
