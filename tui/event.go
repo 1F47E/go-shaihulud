@@ -8,6 +8,7 @@ const (
 	eventTypeText
 	eventTypeTextError
 	eventTypeAccess
+	eventTypeChatReady
 )
 
 type access struct {

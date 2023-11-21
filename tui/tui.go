@@ -55,7 +55,6 @@ func (t *TUI) RenderChat() {
 	t.chat.Run()
 }
 
-
 // read events from channel and update spinner/progress bar
 func (t *TUI) Listner() {
 
@@ -69,13 +68,18 @@ func (t *TUI) Listner() {
 			case eventTypeSpin:
 				// t.loader.SetSpinner(event.text)
 				t.chat.AddMessage(event.text)
+				t.chat.SetMode(tpage.ModeLoading)
 			case eventTypeBar:
 				// t.loader.SetProgress(event.text, event.percent)
 				msg := fmt.Sprintf("Loading %s: %d%%", event.text, int(event.percent))
 				t.chat.AddMessage(msg)
+				t.chat.SetMode(tpage.ModeLoading)
+			case eventTypeChatReady:
+				t.chat.SetMode(tpage.ModeChat)
 			case eventTypeText:
 				// t.loader.SetText(event.text)
 				t.chat.AddMessage(event.text)
+				// t.chat.SetMode(tpage.ModeChat)
 			case eventTypeTextError:
 				// t.loader.SetText(event.text)
 				t.chat.AddMessage(renderError(event.text))

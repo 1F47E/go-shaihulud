@@ -274,7 +274,7 @@ func (m *PageWidget) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	default:
 		// update viewport with messages
 		m.viewport.SetContent(m.Content())
-		m.viewport.GotoBottom()
+		// m.viewport.GotoBottom()
 	}
 
 	// input
@@ -314,6 +314,9 @@ func (m *PageWidget) View() string {
 		PaddingRight(2)
 
 	switch m.mode {
+	case ModeLoading:
+		m.status.SetContent("loading...")
+		return fmt.Sprintf("%s\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.status.View())
 	case ModeChat:
 		return fmt.Sprintf("%s\n%s\n\n%s\n\n%s", m.topBar.View(), m.viewport.View(), m.textarea.View(), m.status.View())
 
