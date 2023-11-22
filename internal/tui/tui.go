@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	tauth "github.com/1F47E/go-shaihulud/tui/t.auth"
-	tpage "github.com/1F47E/go-shaihulud/tui/t.chat"
-	tstatus "github.com/1F47E/go-shaihulud/tui/t.status"
+	tauth "github.com/1F47E/go-shaihulud/internal/tui/t.auth"
+	tpage "github.com/1F47E/go-shaihulud/internal/tui/t.chat"
+	tstatus "github.com/1F47E/go-shaihulud/internal/tui/t.status"
 	"github.com/charmbracelet/lipgloss"
 )
 

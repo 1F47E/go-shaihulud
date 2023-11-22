@@ -6,16 +6,16 @@ import (
 	"net"
 	"strings"
 
-	"github.com/1F47E/go-shaihulud/client/connection"
-	"github.com/1F47E/go-shaihulud/client/listner"
-	client_local "github.com/1F47E/go-shaihulud/client/local"
-	"github.com/1F47E/go-shaihulud/client/message"
-	client_tor "github.com/1F47E/go-shaihulud/client/tor"
-	myaes "github.com/1F47E/go-shaihulud/cryptotools/aes"
-	"github.com/1F47E/go-shaihulud/cryptotools/auth"
-	"github.com/1F47E/go-shaihulud/interfaces"
-	"github.com/1F47E/go-shaihulud/logger"
-	"github.com/1F47E/go-shaihulud/tui"
+	"github.com/1F47E/go-shaihulud/internal/client/connection"
+	"github.com/1F47E/go-shaihulud/internal/client/listner"
+	client_local "github.com/1F47E/go-shaihulud/internal/client/local"
+	"github.com/1F47E/go-shaihulud/internal/client/message"
+	client_tor "github.com/1F47E/go-shaihulud/internal/client/tor"
+	myaes "github.com/1F47E/go-shaihulud/internal/cryptotools/aes"
+	"github.com/1F47E/go-shaihulud/internal/cryptotools/auth"
+	"github.com/1F47E/go-shaihulud/internal/interfaces"
+	"github.com/1F47E/go-shaihulud/internal/tui"
+	zlog "github.com/rs/zerolog/log"
 )
 
 // can be local or tor
@@ -71,27 +71,31 @@ func NewClient(ctx context.Context, cancel context.CancelFunc, connType Connecti
 	}
 }
 
-func (c *Client) RunServer(session string) error {
-	log := logger.New()
+type Auth struct {
+	AccessKey string `json:"access_key"`
+	Password  string `json:"password"`
+}
+
+func (c *Client) RunServer(session string) (*Auth, error) {
 
 	// generate auth key and password
 	crypter := myaes.New()
 	auth, err := auth.New(crypter, session)
 	if err != nil {
-		log.Fatalf("cant create auth: %v\n", err)
+		zlog.Fatal().Msgf("cant create auth: %v\n", err)
 	}
 
 	// auth creds for the client
 	c.eventsCh <- tui.NewEventAccess(auth.AccessKey(), auth.Password())
-	log.Debugf("auth key: \n%s\n", auth.AccessKey())
-	log.Debugf("password: %s\n", auth.Password())
+	zlog.Debug().Msgf("auth key: \n%s\n", auth.AccessKey())
+	zlog.Debug().Msgf("password: %s\n", auth.Password())
 
 	// println()
-	// log.Warn("🔑 Client auth creds")
-	// log.Warn("=======================================")
-	// log.Warnf(" Key: %s\n\n", auth.AccessKey())
-	// log.Warnf(" Password: %s\n", auth.Password())
-	// log.Warn("=======================================")
+	// zlog.Warn().Msg("🔑 Client auth creds")
+	// zlog.Warn().Msg("=======================================")
+	// zlog.Warn().Msgf(" Key: %s\n\n", auth.AccessKey())
+	// zlog.Warn().Msgf(" Password: %s\n", auth.Password())
+	// zlog.Warn().Msg("=======================================")
 	// println()
 
 	// get address
@@ -107,22 +111,22 @@ func (c *Client) RunServer(session string) error {
 		msgLoading = "Starting TOR..."
 		msgSuccess = "Tor server started, waiting for incoming connections..."
 		address = auth.OnionAddressFull()
-		log.Debugf("starting tor, onion address: %v\n", address)
+		zlog.Debug().Msgf("starting tor, onion address: %v\n", address)
 	default:
-		log.Fatalf("unknown connection type: %v\n", c.connType)
+		zlog.Fatal().Msgf("unknown connection type: %v\n", c.connType)
 	}
 
 	c.eventsCh <- tui.NewEventSpin(msgLoading)
 	// run server with a given address
-	log.Debugf("Client.RunServer: %v\n", address)
+	zlog.Debug().Msgf("Client.RunServer: %v\n", address)
 	listener, err := c.connector.RunServer(address, auth.Onion().PrivKey())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	c.eventsCh <- tui.NewEventSpin(msgSuccess)
 
 	// msg := "Server started, waiting for connections..."
-	// log.Debug(msg)
+	// zlog.Debug().Msg(msg)
 	// c.eventsCh <- tui.NewEventSpin(msg)
 
 	// accept incoming connections
@@ -130,20 +134,20 @@ func (c *Client) RunServer(session string) error {
 		for {
 			select {
 			case <-c.ctx.Done():
-				log.Debugf("RunServer listner context done: %v\n", c.ctx.Err())
+				zlog.Debug().Msgf("RunServer listner context done: %v\n", c.ctx.Err())
 				return
 
 			default:
-				log.Debug("Client.RunServer: Waiting for a connection")
+				zlog.Debug().Msg("Client.RunServer: Waiting for a connection")
 
 				conn, err := listener.Accept()
 				if err != nil {
-					log.Errorf("Client.RunServer listener.Accept error: %v\n", err)
+					zlog.Error().Msgf("Client.RunServer listener.Accept error: %v\n", err)
 					continue
 				}
 				user := connection.New(conn) // connection with user data
 				c.user = user
-				log.Debug("Client.RunServer: Got a connection")
+				zlog.Debug().Msg("Client.RunServer: Got a connection")
 
 				c.eventsCh <- tui.NewEventSpin("Accepting incoming connection...")
 
@@ -158,7 +162,11 @@ func (c *Client) RunServer(session string) error {
 		}
 	}()
 
-	return nil
+	a := Auth{
+		AccessKey: auth.AccessKey(),
+		Password:  auth.Password(),
+	}
+	return &a, nil
 }
 
 func (c *Client) AuthVerify(key, password string) error {
@@ -180,7 +188,6 @@ func (c *Client) AuthVerify(key, password string) error {
 }
 
 func (c *Client) RunClient() error {
-	log := logger.New()
 
 	// ===== At this point access key and pass are valid
 
@@ -191,12 +198,12 @@ func (c *Client) RunClient() error {
 	case Local:
 		address = "localhost:3000"
 		output = fmt.Sprintf("Connecting to %s...", address)
-		log.Debugf(output)
+		zlog.Debug().Msg(output)
 	case Tor:
 		// address = ath.OnionAddressFull() // BUG: assign onion address on init
 		address := "demo.onion"
 		output = "Starting TOR..."
-		log.Debugf("Starting tor, connecting to onion address: %v\n", address)
+		zlog.Debug().Msgf("Starting tor, connecting to onion address: %v\n", address)
 	default:
 		return fmt.Errorf("unknown connection type: %v\n", c.connType)
 	}
@@ -220,35 +227,20 @@ func (c *Client) RunClient() error {
 	return nil
 }
 
-// func (c *Client) ListenUserInput() {
-// 	log := logger.New().WithField("scope", "client.ListenUserInput")
-// 	for {
-// 		select {
-// 		case <-c.ctx.Done():
-// 			log.Warnf("context done: %v\n", c.ctx.Err())
-// 			return
-// 		default:
-// 			input := make([]byte, cfg.MSG_MAX_SIZE)
-// 			n, err := os.Stdin.Read(input)
-// 			if err != nil {
-// 				log.Fatalf("read error: %v\n", err)
-// 				return
-// 			}
-// 			text := input[:n]
-// 			log.Debugf("user input: %d %v\n", len(text), text)
-// 			log.Debugf("crypter: %v\n", c.crypter)
-// 			inputCipher, err := c.crypter.Encrypt(text, c.user.PubKey)
-// 			if err != nil {
-// 				log.Errorf("can't send a message: %v\n", err)
-// 			}
-// 			log.Debugf("inputCipher: %d %v\n", len(inputCipher), inputCipher)
-// 			c.msgCh <- message.NewMSG(inputCipher)
-// 		}
-// 	}
-// }
-
 func (c *Client) Close() {
 	if c.user != nil && c.user.Conn != nil {
 		c.user.Conn.Close()
 	}
+}
+
+// send message
+func (c *Client) Send(msg string) error {
+	zlog.Debug().Msgf("crypter: %v\n", c.crypter)
+	inputCipher, err := c.crypter.Encrypt([]byte(msg), c.user.PubKey)
+	if err != nil {
+		return err
+	}
+	zlog.Debug().Msgf("inputCipher: %d %v\n", len(inputCipher), inputCipher)
+	c.msgCh <- message.NewMSG(inputCipher)
+	return nil
 }

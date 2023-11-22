@@ -6,11 +6,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/1F47E/go-shaihulud/client"
-	myrsa "github.com/1F47E/go-shaihulud/cryptotools/rsa"
+	"github.com/1F47E/go-shaihulud/internal/api"
+	"github.com/1F47E/go-shaihulud/internal/client"
+	"github.com/1F47E/go-shaihulud/internal/core"
+	myrsa "github.com/1F47E/go-shaihulud/internal/cryptotools/rsa"
+	"github.com/1F47E/go-shaihulud/internal/tui"
 
-	"github.com/1F47E/go-shaihulud/logger"
-	"github.com/1F47E/go-shaihulud/tui"
+	"github.com/1F47E/go-shaihulud/internal/logger"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var log = logger.New()
@@ -18,51 +22,8 @@ var log = logger.New()
 var usage = "Usage: <srv | cli>\n"
 
 func main() {
-
-	// ctx, cancel := context.WithCancel(context.Background())
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-
-	// TUI init (events channel for tui status updates)
-	eventsCh := make(chan tui.Event)
-	t := tui.New(ctx, eventsCh)
-	go t.Listner()
-
-	// show chat window
-	go t.RenderChat()
-	// eventsCh <- tui.NewEventLoading()
-
-	// time.Sleep(1 * time.Second)
-	// eventsCh <- tui.NewEventSpin("loading tor...")
-	// time.Sleep(3 * time.Second)
-	// eventsCh <- tui.NewEventAccess("key", "password")
-	// time.Sleep(3 * time.Second)
-	// panic("test")
-
-	<-ctx.Done()
-	println("Bye")
-	os.Exit(0)
-
-	// get input args
-	args := os.Args
-	if len(args) == 1 {
-		log.Fatal(usage)
-	}
-	arg := args[1]
-
-	// time.Sleep(3 * time.Second)
-	// t.SetMode(t.Mode)
-	// panic("test")
-
-	// go t.RenderLoader()
-
-	//
-	// time.Sleep(1 * time.Second)
-	// eventsCh <- tui.NewEventSpin("loading tor...")
-	// time.Sleep(3 * time.Second)
-	// eventsCh <- tui.NewEventAccess("key", "password")
-	// time.Sleep(10 * time.Second)
-	// panic("test")
 
 	// create assym crypter for communication
 	crypter, err := myrsa.New()
@@ -78,57 +39,33 @@ func main() {
 		connType = client.Tor
 	}
 
-	// TODO: move connection logic our of main
+	eventsCh := make(chan tui.Event, 10000) // FIXME: delete this
 	cli := client.NewClient(ctx, cancel, connType, crypter, eventsCh)
 
-	// TODO: add new session command and connect to old session.
-	// or select a previous session from a list
+	core := core.NewCore(cli)
+
+	api := api.NewApi(core)
+
+	// gracefull shutdown
 	go func() {
-		switch arg {
-		case "srv":
-			eventsCh <- tui.NewEventSpin("Loading...")
-			session := ""
-			err := cli.RunServer(session)
-			if err != nil {
-				log.Fatalf("server start error: %v\n", err)
-			}
-		case "cli":
-			// TODO: auth disabled for debug
-			// key, password, err := t.RenderAuth()
-			// if err != nil {
-			// 	log.Fatalf("auth error: %v\n", err)
-			// }
-			// fmt.Printf("key: %s\n", key)
-			// fmt.Printf("password: %s\n", password)
-			// key, password := "", ""
-			// err := cli.AuthVerify(key, password)
-			// if err != nil {
-			// 	log.Errorf("")
-			// 	os.Exit(0)
-			// }
-
-			// TODO: validate password first before connecting,
-			// expose crypter func to validate password
-			eventsCh <- tui.NewEventSpin("Connecting...")
-			err = cli.RunClient()
-			if err != nil {
-				log.Error(err)
-				os.Exit(0)
-			}
-
-		default:
-			log.Fatal(usage)
+		<-ctx.Done()
+		zlog.Info().Msg("Shutting down server...")
+		if err := api.Shutdown(); err != nil {
+			zlog.Error().Err(err).Msg("Error shutting down server")
 		}
 	}()
 
-	// graceful shutdown
-	go func() {
-		stop := make(chan os.Signal, 1)
-		signal.Notify(stop, os.Interrupt)
-		<-stop
-		cancel()
-	}()
+	endpoint := "localhost:3003"
+	// open link in a new target window to ensure it opens every time the same
+	// go func() {
+	// 	time.Sleep(1 * time.Second)
+	// 	err := open.Run("http://" + endpoint)
+	// 	if err != nil {
+	// 		log.Errorf("Failed to open browser: %v\n", err)
+	// 	}
+	// }()
 
-	<-ctx.Done()
+	// start the server
+	api.Start(endpoint)
 	log.Warn("Bye!")
 }

@@ -27,9 +27,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/1F47E/go-shaihulud/config"
-	"github.com/1F47E/go-shaihulud/cryptotools/onion"
-	"github.com/1F47E/go-shaihulud/interfaces"
+	"github.com/1F47E/go-shaihulud/internal/config"
+	"github.com/1F47E/go-shaihulud/internal/cryptotools/onion"
+	"github.com/1F47E/go-shaihulud/internal/interfaces"
 )
 
 var SESSION_DIR = config.SESSION_DIR
@@ -163,16 +163,17 @@ func (a *Auth) Onion() interfaces.Onioner {
 }
 
 func (a *Auth) AccessKey() string {
+	return a.accessKey
 	// split access key into groups
-	groupLen := 46
-	key := ""
-	for i, c := range a.accessKey {
-		if i%groupLen == 0 {
-			key += "\n"
-		}
-		key += string(c)
-	}
-	return key
+	// groupLen := 46
+	// key := ""
+	// for i, c := range a.accessKey {
+	// 	if i%groupLen == 0 {
+	// 		key += "\n"
+	// 	}
+	// 	key += string(c)
+	// }
+	// return key
 }
 
 func (a *Auth) Password() string {
@@ -180,7 +181,7 @@ func (a *Auth) Password() string {
 }
 
 func (a *Auth) String() string {
-	return fmt.Sprintf("=====\nAccess key:\n%s\nPassword: %s\n=====", a.accessKey, a.password)
+	return fmt.Sprintf("%s %s", a.accessKey, a.password)
 }
 
 // save to a session file

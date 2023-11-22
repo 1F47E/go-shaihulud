@@ -7,11 +7,11 @@ import (
 	"io"
 	"time"
 
-	"github.com/1F47E/go-shaihulud/client/connection"
-	"github.com/1F47E/go-shaihulud/client/message"
-	cfg "github.com/1F47E/go-shaihulud/config"
-	"github.com/1F47E/go-shaihulud/interfaces"
-	"github.com/1F47E/go-shaihulud/logger"
+	"github.com/1F47E/go-shaihulud/internal/client/connection"
+	"github.com/1F47E/go-shaihulud/internal/client/message"
+	cfg "github.com/1F47E/go-shaihulud/internal/config"
+	"github.com/1F47E/go-shaihulud/internal/interfaces"
+	"github.com/1F47E/go-shaihulud/internal/logger"
 )
 
 type Listner struct {

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	myaes "github.com/1F47E/go-shaihulud/cryptotools/aes"
+	myaes "github.com/1F47E/go-shaihulud/internal/cryptotools/aes"
 
 	"github.com/stretchr/testify/assert"
 )
