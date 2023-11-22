@@ -11,6 +11,12 @@
         background-color: #1a202c;
         color: #cbd5e0;
       }
+      #welcome {
+        text-align: center;
+      }
+      #join {
+        text-align: center;
+      }
       .input-field {
         margin-bottom: 0.5rem;
         padding: 0.5rem;
@@ -20,13 +26,22 @@
         color: #cbd5e0;
       }
       .btn {
-        padding: 0.5rem 1rem;
+        padding: 1rem;
         border-radius: 0.375rem;
         border: 2px solid transparent;
         background-color: #2c7a7b;
         color: #edf2f7;
         cursor: pointer;
-        margin-right: 0.5rem;
+        margin: 1rem;
+      }
+      .create {
+        padding: 0.1rem;
+        border-radius: 0.375rem;
+        border: 2px solid transparent;
+        background-color: #135658;
+        color: #edf2f7;
+        cursor: pointer;
+        margin: 0.1rem;
       }
       .btn:hover {
         background-color: #319795;
@@ -47,30 +62,45 @@
   <body>
     <div class="container mx-auto">
       <div class="inputs flex flex-col items-center justify-center">
-        <input
-          type="text"
-          id="chatKey"
-          class="input-field w-full max-w-xs"
-          placeholder="Chat Key"
-        />
-        <input
-          type="password"
-          id="chatPassword"
-          class="input-field w-full max-w-xs"
-          placeholder="Password"
-        />
-        <button class="btn" onclick="joinChat()">Join chat</button>
-        <button class="btn" onclick="createChat()">Create chat</button>
-        <textarea
-          id="chatMessage"
-          class="input-field w-full max-w-xs"
-          placeholder="Type your message here..."
-        ></textarea>
-        <button class="btn" onclick="sendMessage()">Send</button>
+        <div id="welcome">
+
+          <div id="join">
+            <div>
+              <input
+                type="text"
+                id="chatKey"
+                class="input-field w-full max-w-xs"
+                placeholder="Chat Key"
+              />
+              <input
+                type="password"
+                id="chatPassword"
+                class="input-field w-full max-w-xs"
+                placeholder="Password"
+              />
+            </div>
+            <button class="btn" onclick="joinChat()">Join chat</button>
+          </div>
+        </div>
+
+        <div id="create">
+            <button class="btn create" onclick="createChat()">Create chat</button>
+          </div>
+
+        <div id="chat" style="display: none">
+          <textarea
+            id="chatMessage"
+            class="input-field w-full max-w-xs"
+            placeholder="Type your message here..."
+          ></textarea>
+          <button class="btn" onclick="sendMessage()">Send</button>
+        </div>
       </div>
       <div id="errorBox" class="error-box hidden"></div>
     </div>
     <script>
+      let mode = "welcome";
+
       function displayError(message) {
         const errorBox = document.getElementById("errorBox");
         errorBox.textContent = message;
@@ -91,6 +121,10 @@
           })
           .then(function (response) {
             console.log(response);
+            // hide welcome div
+            document.getElementById("welcome").classList.add("hidden");
+            // show chat div
+            document.getElementById("chat").classList.remove("hidden");
           })
           .catch(function (error) {
             displayError(error.toString());
@@ -102,7 +136,10 @@
           .post("/chat/create")
           .then(function (response) {
             console.log(response);
-            displayError(JSON.stringify(response));
+            const auth = response.data;
+            let msg = "Chat created successfully. Key: " + auth.auth_key;
+            msg += " Password: " + auth.password;
+            displayError(msg);
           })
           .catch(function (error) {
             displayError(error.toString());

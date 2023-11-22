@@ -29,7 +29,9 @@ func NewApi(core *core.Core) *API {
 		validate: validator.New(),
 	}
 
-	app.Static("/", "./webui")
+	// app.Static("/", "./webui")
+	app.Static("/", "./webui/react/chat/build")
+	// app.Static("/chat", "./webui/chat")
 	app.Get("/ping", api.Ping)
 	app.Post("/chat/create", api.ChatCreate)
 	app.Post("/chat/join", api.ChatJoin)
