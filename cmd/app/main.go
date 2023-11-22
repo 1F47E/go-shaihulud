@@ -12,14 +12,8 @@ import (
 	myrsa "github.com/1F47E/go-shaihulud/internal/cryptotools/rsa"
 	"github.com/1F47E/go-shaihulud/internal/tui"
 
-	"github.com/1F47E/go-shaihulud/internal/logger"
-
 	zlog "github.com/rs/zerolog/log"
 )
-
-var log = logger.New()
-
-var usage = "Usage: <srv | cli>\n"
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -28,7 +22,7 @@ func main() {
 	// create assym crypter for communication
 	crypter, err := myrsa.New()
 	if err != nil {
-		log.Fatalf("cant create crypter: %v\n", err)
+		zlog.Fatal().Err(err).Msg("cant create crypter")
 	}
 
 	// start the server or connect
@@ -67,5 +61,5 @@ func main() {
 
 	// start the server
 	api.Start(endpoint)
-	log.Warn("Bye!")
+	zlog.Info().Msg("Server stopped")
 }

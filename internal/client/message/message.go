@@ -23,10 +23,8 @@ import (
 	"encoding/binary"
 	mrand "math/rand"
 
-	"github.com/1F47E/go-shaihulud/internal/logger"
+	zlog "github.com/rs/zerolog/log"
 )
-
-var log = logger.New()
 
 type MsgType uint32
 
@@ -163,38 +161,38 @@ func (m *Message) Serialize() ([]byte, error) {
 func Deserialize(data []byte) (*Message, error) {
 	buf := bytes.NewReader(data)
 	// log message bytes
-	log.Debugf("message bytes: %v\n", data)
+	zlog.Debug().Msgf("message bytes: %v\n", data)
 
 	// type
 	var msgType uint32
 	if err := binary.Read(buf, binary.BigEndian, &msgType); err != nil {
-		log.Errorf("error reading message type: %v\n", err)
+		zlog.Error().Msgf("error reading message type: %v\n", err)
 		return nil, err
 	}
-	log.Debugf("Deserialized message type: %v\n", msgType)
+	zlog.Debug().Msgf("Deserialized message type: %v\n", msgType)
 
 	// msg nonce
 	var msgNonce uint32
 	if err := binary.Read(buf, binary.BigEndian, &msgNonce); err != nil {
-		log.Errorf("error reading message nonce: %v\n", err)
+		zlog.Error().Msgf("error reading message nonce: %v\n", err)
 		return nil, err
 	}
 
 	// msg len
 	var msgLen uint32
 	if err := binary.Read(buf, binary.BigEndian, &msgLen); err != nil {
-		log.Errorf("error reading message len: %v\n", err)
+		zlog.Error().Msgf("error reading message len: %v\n", err)
 		return nil, err
 	}
-	log.Debugf("Deserialized message len: %v\n", msgLen)
+	zlog.Debug().Msgf("Deserialized message len: %v\n", msgLen)
 
 	// msg body
 	body := make([]byte, msgLen)
 	if err := binary.Read(buf, binary.BigEndian, &body); err != nil {
-		log.Errorf("error reading message body: %v\n", err)
+		zlog.Error().Msgf("error reading message body: %v\n", err)
 		return nil, err
 	}
-	log.Debugf("Deserialized message body: %v\n", body)
+	zlog.Debug().Msgf("Deserialized message body: %v\n", body)
 
 	return &Message{MsgType(msgType), msgNonce, msgLen, body}, nil
 }
