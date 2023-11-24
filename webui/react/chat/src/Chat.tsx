@@ -16,9 +16,19 @@ export default function Chat() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
 
+    // debug last user
+    const [lastUser, setLastUser] = useState('You');
+
     const handleSend = () => {
         if (newMessage.trim()) {
-            setMessages([...messages, { text: newMessage, user: 'You' }]);
+            // change last user to use if it was you
+            if (lastUser === 'You') {
+                setLastUser('Guest');
+            }
+            else {
+                setLastUser('You');
+            }
+            setMessages([...messages, { text: newMessage, user: lastUser }]);
             setNewMessage('');
         }
     };
@@ -28,23 +38,34 @@ export default function Chat() {
         <Container style={{ padding: '5rem', width: '100vw', height: '100vh' }}>
             <Grid>
                 <Grid.Col span={8}>
-                    <Paper style={{ height: PRIMARY_COL_HEIGHT, overflowY: 'scroll', scrollbarWidth: 'none' }}>
+                    <Paper style={{
+                        height: PRIMARY_COL_HEIGHT,
+                        overflowY: 'scroll',
+                        scrollbarWidth: 'none',
+                        // backgroundColor: '#f5f5f5',
+                        // borderColor: '#f5f5f5'
+                    }}
+                    >
                         <Stack style={{ overflowY: 'scroll', flexGrow: 1 }}>
                             {messages.map((message, index) => (
                                 <Paper
                                     key={index}
                                     shadow="xs"
+                                    radius="xl"
+
                                     p="md"
                                     style={{
+                                        paddingLeft: '2rem',
                                         maxWidth: '70%',
-                                        margin: '10px',
-                                        backgroundColor: message.user === 'You' ? '#blue' : '#grey',
+                                        margin: '5px',
+                                        backgroundColor: message.user === 'You' ? theme.colors.blue[6] : theme.colors.gray[6],
+                                        borderColor: message.user === 'You' ? theme.colors.blue[6] : theme.colors.gray[6],
                                     }}
                                 >
-                                    <Text style={{ marginBottom: '5px', fontWeight: 500 }}>
+                                    <Text style={{ marginBottom: '0px', fontWeight: 500, textAlign: 'left' }}>
                                         {message.user}
                                     </Text>
-                                    <Text size="sm">{message.text}</Text>
+                                    <Text size="sm" style={{ textAlign: 'left' }}>{message.text}</Text>
                                 </Paper>
                             ))}
                         </Stack>
@@ -54,19 +75,29 @@ export default function Chat() {
                             placeholder="Type your message"
                             value={newMessage}
                             onChange={(event) => setNewMessage(event.currentTarget.value)}
-                            minRows={1}
+                            minRows={2}
                             autosize
                             radius="lg"
                             rightSectionWidth={90}
                             rightSection={
-                                <Button radius="lg" color={theme.primaryColor} variant="filled"
-                                // style={{ paddingLeft: rem(5), paddingRight: rem(5)}}
+                                <Button
+                                    radius="lg"
+                                    color={theme.primaryColor}
+                                    variant="filled"
+                                    onClick={handleSend}
+
                                 >
                                     Send
                                     {/* <IconArrowRight style={{ paddingRight: rem(5), width: rem(28), height: rem(18) }} stroke={1.5} /> */}
                                 </Button>
                             }
+                            // onKeyDown={(event) => {
+                            //     if (event.key === 'Enter') {
+                            //         handleSend();
+                            //     }
+                            // }} 
                             autoFocus
+
                         />
                     </Paper>
                 </Grid.Col>
