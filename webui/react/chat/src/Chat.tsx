@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TextInput, TextInputProps, ActionIcon, Button, Paper, Text, Stack, Container, Textarea, Skeleton, SimpleGrid, Grid, useMantineTheme, rem } from '@mantine/core';
 import { IconSearch, IconArrowRight } from '@tabler/icons-react';
 
@@ -7,7 +7,6 @@ type Message = {
     user: string;
 };
 
-const child = <Skeleton height={140} radius="md" animate={false} />;
 const PRIMARY_COL_HEIGHT = rem(500);
 
 
@@ -15,66 +14,119 @@ const PRIMARY_COL_HEIGHT = rem(500);
 export default function Chat() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
+    const messagesEndRef = useRef(null);
 
-    // debug last user
-    const [lastUser, setLastUser] = useState('You');
+    const scrollToBottom = () => {
+        const currentElement = messagesEndRef.current as unknown as HTMLElement | null;
+        if (currentElement) {
+            currentElement.scrollIntoView({ behavior: "smooth" });
+        }
+    };
+
+    const [lastUser, setLastUser] = useState('Guest');
+
+    const messageInputRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        scrollToBottom();
+        // Focus on message input after sending a message and on load
+        // messageInputRef.current?.focus();
+        focusTextarea()
+    }, [messages]);
 
     const handleSend = () => {
         if (newMessage.trim()) {
-            // change last user to use if it was you
-            if (lastUser === 'You') {
-                setLastUser('Guest');
-            }
-            else {
-                setLastUser('You');
-            }
-            setMessages([...messages, { text: newMessage, user: lastUser }]);
+            const nextUser = lastUser === 'You' ? 'Guest' : 'You';
+            setLastUser(nextUser);
+            setMessages([...messages, { text: newMessage, user: nextUser }]);
             setNewMessage('');
+            // Focus on the textarea after sending a message
+            // messageInputRef.current?.focus();
+        focusTextarea()
         }
     };
+    const focusTextarea = () => {
+        const textarea = document.getElementById('chat-textarea') as HTMLTextAreaElement;
+        textarea?.focus();
+    };
+
+    const handleInput = (value: string) => {
+        setNewMessage(value)
+    }
+
     const theme = useMantineTheme();
 
     return (
-        <Container style={{ padding: '5rem', width: '100vw', height: '100vh' }}>
+        <Container 
+        style={{ 
+            // border: '1px solid #f00',
+            height: '100vh' 
+            }}>
             <Grid>
-                <Grid.Col span={8}>
-                    <Paper style={{
-                        height: PRIMARY_COL_HEIGHT,
-                        overflowY: 'scroll',
-                        scrollbarWidth: 'none',
-                        // backgroundColor: '#f5f5f5',
-                        // borderColor: '#f5f5f5'
-                    }}
-                    >
-                        <Stack style={{ overflowY: 'scroll', flexGrow: 1 }}>
+                <Grid.Col>
+                    <Stack 
+                    justify="flex-end"
+                    style={{ 
+                        // border: '1px solid #00f',
+                        height: '90vh'
+                    }}>
+                        <Paper style={{
+                            overflowY: 'auto',
+                            scrollbarWidth: 'none',
+                            flexGrow: 1,
+                            padding: 10
+                        }}
+                        >
                             {messages.map((message, index) => (
                                 <Paper
                                     key={index}
                                     shadow="xs"
                                     radius="xl"
-
                                     p="md"
                                     style={{
                                         paddingLeft: '2rem',
                                         maxWidth: '70%',
-                                        margin: '5px',
-                                        backgroundColor: message.user === 'You' ? theme.colors.blue[6] : theme.colors.gray[6],
+                                        margin: '15px',
+                                        color: message.user === 'You' ? theme.colors.blue[0] : theme.colors.gray[0],
+                                        backgroundColor: message.user === 'You' ? theme.colors.blue[6] : theme.colors.gray[9],
                                         borderColor: message.user === 'You' ? theme.colors.blue[6] : theme.colors.gray[6],
                                     }}
                                 >
-                                    <Text style={{ marginBottom: '0px', fontWeight: 500, textAlign: 'left' }}>
+                                    <Text 
+                                    style={{ 
+                                        marginBottom: '0px', 
+                                        fontWeight: 500, 
+                                        textAlign: 'left'
+                                        }}>
                                         {message.user}
                                     </Text>
-                                    <Text size="sm" style={{ textAlign: 'left' }}>{message.text}</Text>
+                                    <Text size="sm" 
+                                    style={{ 
+                                        textAlign: 'left'
+                                        }}
+                                        ><pre>{message.text}</pre></Text>
                                 </Paper>
                             ))}
-                        </Stack>
-                    </Paper>
+                            <div ref={messagesEndRef} />
+                        </Paper>
+                    </Stack>
+                    <Stack 
+                    justify="flex-end"
+                    style={{ 
+                        }}>
                     <Paper style={{ marginTop: 'md' }}>
                         <Textarea
+                            id="chat-textarea"
                             placeholder="Type your message"
                             value={newMessage}
-                            onChange={(event) => setNewMessage(event.currentTarget.value)}
+                            onChange={(event) => handleInput(event.currentTarget.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' && event.shiftKey) {
+                                    handleInput(event.currentTarget.value);
+                                } else if (event.key === 'Enter') {
+                                    handleSend();
+                                }
+                            }}
                             minRows={2}
                             autosize
                             radius="lg"
@@ -85,27 +137,18 @@ export default function Chat() {
                                     color={theme.primaryColor}
                                     variant="filled"
                                     onClick={handleSend}
-
                                 >
                                     Send
-                                    {/* <IconArrowRight style={{ paddingRight: rem(5), width: rem(28), height: rem(18) }} stroke={1.5} /> */}
                                 </Button>
                             }
-                            // onKeyDown={(event) => {
-                            //     if (event.key === 'Enter') {
-                            //         handleSend();
-                            //     }
-                            // }} 
                             autoFocus
-
                         />
                     </Paper>
-                </Grid.Col>
-                <Grid.Col span={4} style={{ width: '20%' }}>
-                    <Skeleton height={PRIMARY_COL_HEIGHT} radius="md" animate={false} />
-                </Grid.Col>
-            </Grid>
-        </Container>
+                </Stack>
+            </Grid.Col>
+        </Grid>
+        </Container >
+
     );
 
     // dissabledc 
