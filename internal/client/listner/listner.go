@@ -7,11 +7,11 @@ import (
 	"io"
 	"time"
 
-	"github.com/1F47E/go-shaihulud/pkg/client/connection"
-	"github.com/1F47E/go-shaihulud/pkg/client/message"
-	cfg "github.com/1F47E/go-shaihulud/pkg/config"
-	"github.com/1F47E/go-shaihulud/pkg/interfaces"
-	"github.com/1F47E/go-shaihulud/pkg/logger"
+	"github.com/1F47E/go-shaihulud/internal/client/connection"
+	"github.com/1F47E/go-shaihulud/internal/client/message"
+	cfg "github.com/1F47E/go-shaihulud/internal/config"
+	"github.com/1F47E/go-shaihulud/internal/cryptotools/asymmetric"
+	"github.com/1F47E/go-shaihulud/internal/logger"
 )
 
 type Listner struct {
@@ -29,7 +29,7 @@ func New(ctx context.Context, cancel context.CancelFunc, msgCh chan message.Mess
 }
 
 // goroutine per connection
-func (l *Listner) Sender(user *connection.Connection, crypter interfaces.Asymmetric) {
+func (l *Listner) Sender(user *connection.Connection, crypter asymmetric.Asymmetric) {
 	log := logger.New()
 	log.Debug("Listner.Sender: Starting")
 	defer func() {
@@ -71,7 +71,7 @@ func (l *Listner) Sender(user *connection.Connection, crypter interfaces.Asymmet
 }
 
 // goroutine per connection
-func (l *Listner) Receiver(user *connection.Connection, crypter interfaces.Asymmetric) {
+func (l *Listner) Receiver(user *connection.Connection, crypter asymmetric.Asymmetric) {
 	log := logger.New()
 
 	log.Debug("Listner.Receiver: Starting")

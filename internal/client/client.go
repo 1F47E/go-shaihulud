@@ -6,16 +6,16 @@ import (
 	"os"
 	"strings"
 
-	"github.com/1F47E/go-shaihulud/pkg/client/connection"
-	"github.com/1F47E/go-shaihulud/pkg/client/listner"
-	client_local "github.com/1F47E/go-shaihulud/pkg/client/local"
-	"github.com/1F47E/go-shaihulud/pkg/client/message"
-	client_tor "github.com/1F47E/go-shaihulud/pkg/client/tor"
-	cfg "github.com/1F47E/go-shaihulud/pkg/config"
-	myaes "github.com/1F47E/go-shaihulud/pkg/cryptotools/aes"
-	"github.com/1F47E/go-shaihulud/pkg/cryptotools/auth"
-	"github.com/1F47E/go-shaihulud/pkg/interfaces"
-	"github.com/1F47E/go-shaihulud/pkg/logger"
+	"github.com/1F47E/go-shaihulud/internal/client/connection"
+	"github.com/1F47E/go-shaihulud/internal/client/listner"
+	client_local "github.com/1F47E/go-shaihulud/internal/client/local"
+	"github.com/1F47E/go-shaihulud/internal/client/message"
+	client_tor "github.com/1F47E/go-shaihulud/internal/client/tor"
+	cfg "github.com/1F47E/go-shaihulud/internal/config"
+	"github.com/1F47E/go-shaihulud/internal/cryptotools/asymmetric"
+	"github.com/1F47E/go-shaihulud/internal/cryptotools/auth"
+	myaes "github.com/1F47E/go-shaihulud/internal/cryptotools/symmetric/aes"
+	"github.com/1F47E/go-shaihulud/internal/logger"
 )
 
 // can be local or tor
@@ -36,13 +36,13 @@ type Client struct {
 	cancel    context.CancelFunc
 	msgCh     chan message.Message
 	connector Connector
-	crypter   interfaces.Asymmetric
+	crypter   asymmetric.Asymmetric
 	user      *connection.Connection
 	listner   *listner.Listner
 	connType  ConnectionType
 }
 
-func NewClient(ctx context.Context, cancel context.CancelFunc, connType ConnectionType, crypter interfaces.Asymmetric) *Client {
+func NewClient(ctx context.Context, cancel context.CancelFunc, connType ConnectionType, crypter asymmetric.Asymmetric) *Client {
 	msgCh := make(chan message.Message)
 	var connector Connector
 

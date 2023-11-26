@@ -1,26 +1,24 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"os"
 	"os/signal"
+	"strings"
 
-	"github.com/1F47E/go-shaihulud/pkg/client"
-	myrsa "github.com/1F47E/go-shaihulud/pkg/cryptotools/rsa"
-	"github.com/1F47E/go-shaihulud/pkg/gui"
-	"github.com/1F47E/go-shaihulud/pkg/logger"
+	"github.com/1F47E/go-shaihulud/internal/client"
+	myrsa "github.com/1F47E/go-shaihulud/internal/cryptotools/asymmetric/rsa"
+	"github.com/1F47E/go-shaihulud/internal/logger"
 
 	"golang.org/x/term"
 )
 
 var log = logger.New()
 
-var usage = "Usage: <srv | cli key>\n"
+var usage = "Usage: <srv | cli>\n"
 
 func main() {
-	if os.Getenv("TUI") == "1" {
-		gui.Draw()
-	}
 
 	// get input args
 	args := os.Args
@@ -57,12 +55,13 @@ func main() {
 				log.Fatalf("server start error: %v\n", err)
 			}
 		case "cli":
-			// TODO: allow bypass auth for dev
-			// get key as a param
-			if len(args) != 3 {
-				log.Fatalf("Usage: %s key <key>\n", args[0])
+			log.Info("Enter chat key:")
+			reader := bufio.NewReader(os.Stdin)
+			key, err := reader.ReadString('\n')
+			if err != nil {
+				log.Fatalf("Error reading chat key: %v", err)
 			}
-			key := args[2]
+			key = strings.TrimSpace(key)
 			// TODO: validate key
 
 			log.Info("Enter password:")

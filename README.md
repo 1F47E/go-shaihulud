@@ -14,9 +14,6 @@ Users exchange messages encrypted with each other's RSA public keys.
 
 ![screenshot](assets/screenshot.png)
 
-# Whats up with the name?
-Shai-hulud is the name of the giant sandworms in the Dune universe. 
-
 # Dependencies
 [Tor The Onion Router](https://www.torproject.org/download/) - free and open-source software for enabling anonymous communication by directing traffic through a free overlay network.
 
@@ -110,7 +107,6 @@ User B enters the access key and then the password to decrypt the onion address.
 # ENVS
 - TOR=0 - disable tor connection for dev purposes
 - DEBUG=1 - enable debug mode
-- TUI=1 - enable Text User Interface mode (work in progress)
 
 
 # TODO before v0.1
@@ -125,12 +121,11 @@ User B enters the access key and then the password to decrypt the onion address.
 - [ ] add timestamps to the messages to prevent replay attacks
 - [ ] sign every message with hmac to verify integrity and prevent MITM attacks
 - [x] ack on handshake received
-- [ ] print that handshake was received
+- [ ] notify about handshake 
 - [x] ack on every message
 - [ ] chat gui (tui)
 - [ ] send files
 - [ ] allow multiple users in a chat room
-- [ ] test coverage for all packages
 - [x] onion routing
 - [x] gen chat key for access, hide onion
 - [x] server generate key with password

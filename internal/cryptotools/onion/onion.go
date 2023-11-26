@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/1F47E/go-shaihulud/pkg/config"
+	"github.com/1F47E/go-shaihulud/internal/config"
 
 	"math/rand"
 

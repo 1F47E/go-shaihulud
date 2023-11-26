@@ -27,9 +27,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/1F47E/go-shaihulud/pkg/config"
-	"github.com/1F47E/go-shaihulud/pkg/cryptotools/onion"
-	"github.com/1F47E/go-shaihulud/pkg/interfaces"
+	"github.com/1F47E/go-shaihulud/internal/config"
+	"github.com/1F47E/go-shaihulud/internal/cryptotools/onion"
+	"github.com/1F47E/go-shaihulud/internal/cryptotools/symmetric"
 )
 
 var SESSION_DIR = config.SESSION_DIR
@@ -53,17 +53,17 @@ var SESSION_DIR = config.SESSION_DIR
 // - add hmac signature to messages
 
 type Auth struct {
-	crypter   interfaces.Symmetric
+	crypter   symmetric.Symmetric
 	password  string
 	accessKey string
-	onion     interfaces.Onioner
+	onioner   onion.Onioner
 }
 
-func New(crypter interfaces.Symmetric, session string) (*Auth, error) {
+func New(crypter symmetric.Symmetric, session string) (*Auth, error) {
 	var err error
 	password := generatePassword()
 	accessKey := ""
-	var onioner interfaces.Onioner
+	var onioner onion.Onioner
 
 	// create or load onion key
 	if session == "" {
@@ -92,7 +92,7 @@ func New(crypter interfaces.Symmetric, session string) (*Auth, error) {
 
 	a := Auth{
 		crypter:   crypter,
-		onion:     onioner,
+		onioner:   onioner,
 		password:  password,
 		accessKey: accessKey,
 	}
@@ -102,7 +102,7 @@ func New(crypter interfaces.Symmetric, session string) (*Auth, error) {
 	return &a, nil
 }
 
-func NewFromKey(crypter interfaces.Symmetric, accessKey, password string) (*Auth, error) {
+func NewFromKey(crypter symmetric.Symmetric, accessKey, password string) (*Auth, error) {
 	// decode string key to bytes
 	keyBytesCipher, err := Decode(accessKey)
 	if err != nil {
@@ -124,7 +124,7 @@ func NewFromKey(crypter interfaces.Symmetric, accessKey, password string) (*Auth
 		crypter:   crypter,
 		accessKey: accessKey,
 		password:  password,
-		onion:     onion,
+		onioner:   onion,
 	}
 	if err != nil {
 		return nil, err
@@ -151,15 +151,15 @@ func (a *Auth) DecryptWithPassword(ciphertext []byte, password string) ([]byte, 
 }
 
 func (a *Auth) OnionAddress() string {
-	return a.onion.Address()
+	return a.onioner.Address()
 }
 
 func (a *Auth) OnionAddressFull() string {
-	return fmt.Sprintf("%s.onion:80", a.onion.Address())
+	return fmt.Sprintf("%s.onion:80", a.onioner.Address())
 }
 
-func (a *Auth) Onion() interfaces.Onioner {
-	return a.onion
+func (a *Auth) Onion() onion.Onioner {
+	return a.onioner
 }
 
 func (a *Auth) AccessKey() string {
@@ -177,7 +177,7 @@ func (a *Auth) String() string {
 // save to a session file
 func (a *Auth) Save() error {
 
-	data := a.onion.PrivKey()
+	data := a.onioner.PrivKey()
 	if len(data) == 0 {
 		return fmt.Errorf("no data to save")
 	}
