@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net"
+
 	"github.com/1F47E/go-shaihulud/internal/core"
 	"github.com/go-playground/validator/v10"
 	zlog "github.com/rs/zerolog/log"
@@ -14,9 +16,10 @@ type API struct {
 	app      *fiber.App
 	core     *core.Core
 	validate *validator.Validate
+	listener net.Listener
 }
 
-func NewApi(core *core.Core) *API {
+func NewApi(core *core.Core, l net.Listener) *API {
 	// add recovery middleware
 	app := fiber.New(fiber.Config{})
 
@@ -27,6 +30,7 @@ func NewApi(core *core.Core) *API {
 		app:      app,
 		core:     core,
 		validate: validator.New(),
+		listener: l,
 	}
 
 	// app.Static("/", "./webui")
@@ -39,10 +43,11 @@ func NewApi(core *core.Core) *API {
 	return api
 }
 
-// start server
-func (a *API) Start(endpoint string) {
-	zlog.Info().Msg("Starting server on " + endpoint)
-	if err := a.app.Listen(endpoint); err != nil {
+// start server with custom listener
+
+func (a *API) Start() {
+	zlog.Info().Msgf("Starting server on %s" + a.listener.Addr().String())
+	if err := a.app.Listener(a.listener); err != nil {
 		zlog.Fatal().Err(err).Msg("Error starting server")
 	}
 }
@@ -62,7 +67,7 @@ func (a *API) Ping(c *fiber.Ctx) error {
 
 // start the server
 func (a *API) ChatCreate(c *fiber.Ctx) error {
-	auth, err := a.core.Client.RunServer("")
+	auth, err := a.core.Client.GenerateAuth()
 	if err != nil {
 		zlog.Error().Err(err).Msg("Error starting chat server")
 		return c.SendStatus(fiber.StatusInternalServerError)

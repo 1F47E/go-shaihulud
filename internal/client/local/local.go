@@ -22,7 +22,8 @@ func New(ctx context.Context, cancel context.CancelFunc, msgCh chan message.Mess
 	}
 }
 
-func (c *ClientLocal) RunServer(address string, _ []byte) (net.Listener, error) {
+func (c *ClientLocal) RunServer(port int, _ []byte) (net.Listener, error) {
+	address := fmt.Sprintf(":%d", port)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, err

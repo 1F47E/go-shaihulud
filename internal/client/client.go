@@ -20,7 +20,7 @@ import (
 
 // can be local or tor
 type Connector interface {
-	RunServer(address string, onionPrivKey []byte) (net.Listener, error)
+	RunServer(port int, onionPrivKey []byte) (net.Listener, error)
 	RunClient(address string) (net.Conn, error)
 }
 
@@ -71,63 +71,33 @@ func NewClient(ctx context.Context, cancel context.CancelFunc, connType Connecti
 	}
 }
 
-type Auth struct {
+type ChatAuth struct {
 	AccessKey string `json:"access_key"`
 	Password  string `json:"password"`
 }
 
-func (c *Client) RunServer(session string) (*Auth, error) {
+func (c *Client) CreateListner(port int, keys []byte) (net.Listener, error) {
+	return c.connector.RunServer(port, keys)
+}
 
+func (c *Client) GenerateAuth() (*auth.Auth, error) {
+	session := ""
 	// generate auth key and password
 	crypter := myaes.New()
 	auth, err := auth.New(crypter, session)
 	if err != nil {
-		zlog.Fatal().Msgf("cant create auth: %v\n", err)
-	}
-
-	// auth creds for the client
-	c.eventsCh <- tui.NewEventAccess(auth.AccessKey(), auth.Password())
-	zlog.Debug().Msgf("auth key: \n%s\n", auth.AccessKey())
-	zlog.Debug().Msgf("password: %s\n", auth.Password())
-
-	// println()
-	// zlog.Warn().Msg("🔑 Client auth creds")
-	// zlog.Warn().Msg("=======================================")
-	// zlog.Warn().Msgf(" Key: %s\n\n", auth.AccessKey())
-	// zlog.Warn().Msgf(" Password: %s\n", auth.Password())
-	// zlog.Warn().Msg("=======================================")
-	// println()
-
-	// get address
-	address := ""
-	msgLoading := ""
-	msgSuccess := ""
-	switch c.connType {
-	case Local:
-		address = "localhost:3000"
-		msgLoading = fmt.Sprintf("Starting local server on %s", address)
-		msgSuccess = fmt.Sprintf("Local server started at %s, waiting for incoming connections...", address)
-	case Tor:
-		msgLoading = "Starting TOR..."
-		msgSuccess = "Tor server started, waiting for incoming connections..."
-		address = auth.OnionAddressFull()
-		zlog.Debug().Msgf("starting tor, onion address: %v\n", address)
-	default:
-		zlog.Fatal().Msgf("unknown connection type: %v\n", c.connType)
-	}
-
-	c.eventsCh <- tui.NewEventSpin(msgLoading)
-	// run server with a given address
-	zlog.Debug().Msgf("Client.RunServer: %v\n", address)
-	listener, err := c.connector.RunServer(address, auth.Onion().PrivKey())
-	if err != nil {
+		zlog.Error().Msgf("cant create auth: %v\n", err)
 		return nil, err
 	}
-	c.eventsCh <- tui.NewEventSpin(msgSuccess)
 
-	// msg := "Server started, waiting for connections..."
-	// zlog.Debug().Msg(msg)
-	// c.eventsCh <- tui.NewEventSpin(msg)
+	// listener, err := c.connector.RunServer(address, auth.Onion().PrivKey())
+	return auth, nil
+}
+
+func (c *Client) RunListner(listener net.Listener) {
+
+	// DEBUG
+	// return &a, nil
 
 	// accept incoming connections
 	go func() {
@@ -161,12 +131,6 @@ func (c *Client) RunServer(session string) (*Auth, error) {
 			}
 		}
 	}()
-
-	a := Auth{
-		AccessKey: auth.AccessKey(),
-		Password:  auth.Password(),
-	}
-	return &a, nil
 }
 
 func (c *Client) AuthVerify(key, password string) error {
@@ -182,7 +146,7 @@ func (c *Client) AuthVerify(key, password string) error {
 
 	msg := "✅ Access granted, connecting..."
 	c.eventsCh <- tui.NewEventText(msg)
-	msg = fmt.Sprintf("Connecting to %s...", ath.OnionAddressFull())
+	msg = fmt.Sprintf("Connecting to %s...", ath.OnionAddressTransport())
 	c.eventsCh <- tui.NewEventText(msg)
 	return nil
 }

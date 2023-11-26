@@ -28,14 +28,14 @@ func New(ctx context.Context, cancel context.CancelFunc, msgCh chan message.Mess
 }
 
 // Start the tor service and return the listener
-func (c *TorClient) RunServer(_ string, onionPrivKey []byte) (net.Listener, error) {
+func (c *TorClient) RunServer(port int, onionPrivKey []byte) (net.Listener, error) {
 	t, err := tor.Start(c.ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	// get key from bytes
 	keyPair := ed25519.PrivateKey(onionPrivKey)
-	torconn, err := t.Listen(c.ctx, &tor.ListenConf{Key: keyPair, LocalPort: 3000, RemotePorts: []int{80}})
+	torconn, err := t.Listen(c.ctx, &tor.ListenConf{Key: keyPair, LocalPort: port, RemotePorts: []int{port}})
 	if err != nil {
 		return nil, err
 	}

@@ -154,8 +154,12 @@ func (a *Auth) OnionAddress() string {
 	return a.onion.Address()
 }
 
-func (a *Auth) OnionAddressFull() string {
-	return fmt.Sprintf("%s.onion:80", a.onion.Address())
+func (a *Auth) OnionAddressTransport() string {
+	return fmt.Sprintf("%s.onion:3000", a.onion.Address()) // TODO: fix magic number
+}
+
+func (a *Auth) OnionAddressWeb() string {
+	return fmt.Sprintf("%s.onion:80", a.onion.Address()) // TODO: fix magic number
 }
 
 func (a *Auth) Onion() interfaces.Onioner {
