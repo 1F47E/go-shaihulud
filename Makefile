@@ -7,3 +7,7 @@ server:
 client:
 	@echo "Starting client..."
 	@go run cmd/app/main.go cli
+
+clean:
+	@echo "Cleaning up..."
+	@sudo rm -rf data-dir-*

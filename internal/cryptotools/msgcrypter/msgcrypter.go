@@ -1,12 +1,14 @@
 package msgcrypter
 
-import "github.com/1F47E/go-shaihulud/pkg/interfaces"
+import (
+	"github.com/1F47E/go-shaihulud/internal/cryptotools/asymmetric"
+)
 
 type MessageCrypter struct {
-	crypter interfaces.Asymmetric
+	crypter asymmetric.Asymmetric
 }
 
-func New(crypter interfaces.Asymmetric) *MessageCrypter {
+func New(crypter asymmetric.Asymmetric) *MessageCrypter {
 	return &MessageCrypter{crypter}
 }
 
